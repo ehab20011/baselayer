@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from datetime import datetime
 import chardet
 from psycopg2.extras import execute_batch
+import time
 
 # Define numeric fields that need special handling
 NUMERIC_FIELDS = {
@@ -15,48 +16,42 @@ NUMERIC_FIELDS = {
     'health_care_proceed', 'debt_interest_proceed', 'forgiveness_amount'
 }
 
-#This function establishes a connection to the PostgreSQL database using environment variables
 def get_db_connection():
     """Establish a connection to the PostgreSQL database using environment variables."""
+    from dotenv import load_dotenv
     load_dotenv()
     try:
         conn = psycopg2.connect(
-            host=os.getenv("DB_HOST"),
-            database=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD")
+            database=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD"),
+            host=os.getenv("DB_HOST", "localhost"),
+            port="5432"
         )
         return conn
     except Exception as e:
-        print(f"❌ Database connection failed: {e}")
+        print(f"ERROR: Database connection failed: {e}")
         raise
 
-#This function detects the encoding of the file using chardet and returns the best possible encoding
 def detect_encoding(file_path):
     """Detect file encoding using chardet and return the best possible encoding."""
     with open(file_path, 'rb') as file:
-        raw_data = file.read(100000)  # Read the first 100KB
+        raw_data = file.read(100000)
         result = chardet.detect(raw_data)
         encoding = result['encoding']
         confidence = result['confidence']
-
     if encoding and confidence > 0.8:
-        print(f"✅ Detected encoding: {encoding} with {confidence:.2f} confidence")
+        print(f"INFO: Detected encoding {encoding} with {confidence:.2f} confidence")
         return encoding
-
-    print("⚠️ No high-confidence encoding detected, defaulting to utf-8")
+    print("WARNING: No high-confidence encoding detected, defaulting to utf-8")
     return 'utf-8'
 
-#This function 
 def format_value(value, field_name=None):
     """Format values for PostgreSQL insertion."""
     if value is None or (isinstance(value, str) and value.strip() == ''):
         return None
-    
     if isinstance(value, datetime):
         return value.strftime('%Y-%m-%d %H:%M:%S')
-    
-    # Handle numeric fields
     if field_name in NUMERIC_FIELDS:
         try:
             if isinstance(value, str):
@@ -66,10 +61,8 @@ def format_value(value, field_name=None):
             return float(value)
         except (ValueError, TypeError):
             return None
-            
     return value
 
-#This array defines the expected columns for the PPP dataset
 EXPECTED_COLUMNS = [
     "loan_number", "date_approved", "sba_office_code", "processing_method",
     "borrower_name", "borrower_address", "borrower_city", "borrower_state", "borrower_zip",
@@ -85,74 +78,107 @@ EXPECTED_COLUMNS = [
     "forgiveness_amount", "forgiveness_date"
 ]
 
-#This dictionary maps the column names to the expected columns
 COLUMN_MAP = {col.replace("_", "").lower(): col for col in EXPECTED_COLUMNS}
 
-#This function normalizes the column names for consistency so I can use it to map the columns to the expected columns
 def normalize_key(key: str) -> str:
     """Normalize column names for consistency."""
     return COLUMN_MAP.get(key.replace("_", "").lower(), key)
 
-#This function cleans the dataframe before insertion into the postgres table
 def clean_dataframe(df):
-    """Cleans and formats a DataFrame before insertion into PostgreSQL."""
+    """Clean and format a DataFrame before insertion into PostgreSQL."""
     null_values = {'nan', 'none', 'null', '', 'na', 'n/a', 'NaN', 'None', 'NULL', 'NA', 'N/A'}
-
-    # Strip whitespace from the column names
     df.columns = df.columns.str.strip()
-
-    # Replace the known null values
     df.replace(null_values, None, inplace=True)
-
-    # Apply transformations efficiently using map instead of applymap
     for column in df.columns:
         df[column] = df[column].map(
             lambda x: None if pd.isna(x) or (isinstance(x, str) and x.strip().lower() in null_values)
-            else x.strip() if isinstance(x, str)
-            else x
+            else x.strip() if isinstance(x, str) else x
         )
-
-    # Convert the numeric fields
     for field in NUMERIC_FIELDS:
         if field in df.columns:
             df[field] = pd.to_numeric(df[field], errors='coerce').round(2)
-    
     return df
 
-#This function reads, cleans, and directly inserts the PPP dataset into PostgreSQL
+def read_csv_safely(file_path, chunk_size=None):
+    """
+    Read CSV file safely by trying multiple encodings in sequence.
+    
+    Args:
+        file_path: Path to the CSV file
+        chunk_size: Optional size for chunked reading
+        
+    Returns:
+        DataFrame or TextFileReader for chunked reading
+    """
+    # List of encodings to try in order
+    encodings = [
+        'utf-8-sig',  # UTF-8 with BOM
+        'cp1252',     # Windows-1252
+        'utf-8',      # Standard UTF-8
+        'latin1',     # Latin-1
+        'iso-8859-1'  # Another common encoding
+    ]
+    
+    last_error = None
+    for encoding in encodings:
+        try:
+            print(f"INFO: Attempting to read CSV with encoding: {encoding}")
+            if chunk_size:
+                return pd.read_csv(
+                    file_path,
+                    encoding=encoding,
+                    chunksize=chunk_size,
+                    on_bad_lines='skip',
+                    low_memory=False
+                )
+            return pd.read_csv(
+                file_path,
+                encoding=encoding,
+                on_bad_lines='skip',
+                low_memory=False
+            )
+        except Exception as e:
+            last_error = e
+            print(f"INFO: Failed with encoding {encoding}: {str(e)}")
+            continue
+    
+    # If we get here, none of the encodings worked
+    raise ValueError(f"Failed to read CSV file with any encoding. Last error: {last_error}")
+
 def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000):
-    #Detect the encoding of the file
-    encoding = detect_encoding(csv_path)
+    """
+    Clean and insert PPP data into PostgreSQL.
+    Processes all rows in batches and reports timing information.
+    """
+    start_time = time.time()
+    last_batch_time = start_time
 
-    #Establish a connection to the PostgreSQL database
     with get_db_connection() as conn, conn.cursor() as cur:
-        print("Attempting to read the CSV file...")
-
-        # Read the file in chunks
-        chunks = pd.read_csv(csv_path, encoding=encoding, chunksize=10000, on_bad_lines='skip', low_memory=False)
+        print("INFO: Attempting to read the CSV file...")
+        try:
+            chunks = read_csv_safely(csv_path, chunk_size=batch_size)
+            print("INFO: Successfully opened CSV file")
+        except ValueError as e:
+            print(f"ERROR: Failed reading CSV: {e}")
+            return None, None
 
         total_rows = 0
         error_count = 0
         batch = []
 
-        #Process the file in chunks
         for chunk_num, df in enumerate(chunks, 1):
-            print(f"\nProcessing chunk {chunk_num}...")
-
+            chunk_start_time = time.time()
+            print(f"INFO: Processing chunk {chunk_num}...")
             df = clean_dataframe(df)
-
+            
             for _, row in df.iterrows():
                 try:
                     row_dict = {k: None if pd.isna(v) else v for k, v in row.to_dict().items()}
-                    
-                    # Validate and normalize data
                     validated_row = PPPDataRow(**row_dict)
                     validated_dict = validated_row.model_dump()
-
                     formatted_row = {normalize_key(k): format_value(v, k) for k, v in validated_dict.items()}
-
                     batch.append(formatted_row)
-
+                    
                     if len(batch) >= batch_size:
                         try:
                             execute_batch(
@@ -162,19 +188,28 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000):
                             )
                             conn.commit()
                             total_rows += len(batch)
-                            print(f"✅ Successfully inserted batch. Total rows: {total_rows}")
+                            current_time = time.time()
+                            batch_duration = current_time - last_batch_time
+                            total_duration = current_time - start_time
+                            rows_per_second = len(batch) / batch_duration
+                            print(f"INFO: Batch inserted successfully. "
+                                  f"Total rows: {total_rows:,}. "
+                                  f"Batch processing time: {batch_duration:.2f}s. "
+                                  f"Rows/second this batch: {rows_per_second:.2f}. "
+                                  f"Total elapsed time: {total_duration:.2f}s")
+                            last_batch_time = current_time
                         except Exception as e:
                             conn.rollback()
                             error_count += len(batch)
-                            print(f"❌ Error inserting batch: {e}")
+                            print(f"ERROR: Failed inserting batch: {e}")
                         finally:
                             batch = []
-
                 except Exception as e:
                     error_count += 1
-                    if error_count <= 5:
-                        print(f"\nValidation error: {e}\nData causing the error: {row_dict}")
+                    if error_count <= 5:  # Only show first 5 validation errors
+                        print(f"ERROR: Validation failed: {e}\nProblematic data: {row_dict}")
 
+        # Handle any remaining rows in the last batch
         if batch:
             try:
                 execute_batch(
@@ -184,15 +219,30 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000):
                 )
                 conn.commit()
                 total_rows += len(batch)
-                print(f"✅ Successfully inserted final batch. Total rows: {total_rows}")
+                current_time = time.time()
+                batch_duration = current_time - last_batch_time
+                total_duration = current_time - start_time
+                rows_per_second = len(batch) / batch_duration
+                print(f"INFO: Final batch inserted successfully. "
+                      f"Total rows: {total_rows:,}. "
+                      f"Batch processing time: {batch_duration:.2f}s. "
+                      f"Rows/second this batch: {rows_per_second:.2f}")
             except Exception as e:
                 conn.rollback()
                 error_count += len(batch)
-                print(f"❌ Error inserting final batch: {e}")
+                print(f"ERROR: Failed inserting final batch: {e}")
 
-    print(f"\n✅ Data processing completed! {total_rows:,} rows inserted. {error_count:,} errors encountered.")
+    total_duration = time.time() - start_time
+    avg_rows_per_second = total_rows / total_duration if total_duration > 0 else 0
+    print(f"\nINFO: Processing completed."
+          f"\n  - Total rows processed: {total_rows:,}"
+          f"\n  - Total errors: {error_count:,}"
+          f"\n  - Total time: {total_duration:.2f}s"
+          f"\n  - Average rows/second: {avg_rows_per_second:.2f}")
+    return total_rows, error_count
 
 if __name__ == "__main__":
-    csv_file_path = "C:/Users/Ehab Abdalla/Desktop/BaseLayer/cleaned_ppp_data.csv"
+    import os
+    csv_file_path = os.path.join(os.path.dirname(__file__), "PPP_loan_dataset.csv")
     clean_and_insert_ppp_data(csv_file_path)
-    print("✅ Data cleaning and insertion completed successfully!")
+    print("INFO: Data cleaning and insertion completed")

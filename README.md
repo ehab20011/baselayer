@@ -1,99 +1,166 @@
-# PPP Loan Data Processing Project - Phase 1
+# PPP Loan Data API
 
-This project focuses on extracting, processing, and storing Paycheck Protection Program (PPP) loan data from the Small Business Administration (SBA) website. The implementation includes automated data scraping, data cleaning, and PostgreSQL database storage.
+A FastAPI-based application that scrapes, processes, and serves PPP (Paycheck Protection Program) loan data through a REST API. The application automatically downloads data from the SBA website, processes it, and stores it in a PostgreSQL database.
 
-## Project Components
+## Features
+
+- 🤖 Automated web scraping of PPP loan data from SBA website
+- 🧹 Comprehensive data cleaning and validation
+- 📊 PostgreSQL database with optimized indexes
+- 🚀 FastAPI REST endpoints
+- 🐳 Fully containerized with Docker
+
+## Quick Start
+
+### Prerequisites
+- Docker
+- Docker Compose
+
+### Running the Application
+
+1. Clone this repository:
+```bash
+git clone <your-repository-url>
+cd BaseLayer
+```
+
+2. Start the application:
+```bash
+docker-compose up --build
+```
+
+That's it! The application will:
+- Start PostgreSQL database
+- Download PPP loan data
+- Clean and load the data (limited to 5000 rows)
+- Start the FastAPI server
+
+### Accessing the API
+
+Once running, you can access:
+- API endpoints: http://localhost:8000
+- Interactive API documentation: http://localhost:8000/docs
+- OpenAPI specification: http://localhost:8000/openapi.json
+
+## Application Components
 
 ### 1. Data Scraping (`scraper.py`)
-- Uses Playwright for automated web scraping from the SBA website
-- Navigates through multiple pages to locate and download the PPP FOIA dataset (.csv file)
-- Downloads data to a specified directory with custom naming
+- Uses Playwright to automatically navigate and download PPP data
+- Handles authentication and file downloads
+- Manages browser automation with proper error handling
 
-### 2. Data Model (`models.py`)
-- Implements a Pydantic model called (`PPPDataRow`) for data validation and type checking
-- Handles all the fields from the csv including loan details, borrower information, and financial data
-- Coded comprehensive field validation and type conversion
+### 2. Data Processing (`send_to_postgres.py`)
+- Cleans and validates PPP loan data
+- Processes data in efficient batches
+- Handles data type conversion and standardization
+- Manages database connections and transactions
 
-### 3. Data Processing and Storage (`send_to_postgres.py`)
-- Manages the PostgreSQL database connections using environment variables (.env file)
-- Implements batch processing for efficient data insertion into the postgresql database
-- Included good error handling and logging for debugging if issues occur
-- Processes data in chunks to manage memory efficiently
+### 3. API Server (`api.py`)
+- FastAPI-based REST endpoints
+- Serves PPP loan data with various query parameters
+- Optimized database queries with proper indexing
 
-### 4. Database Optimization (`create_indexes.py`)
-- Creates indexes for optimizing query performance for the fastAPI
-- Includes indexes for:
-  - Primary lookup (loan_number)
-  - Common search fields (borrower_name, borrower_state)
-  - Financial analysis (initial_approval_amount, forgiveness_amount)
-  - Location-based queries (composite index on state, city, zip)
-  - Status tracking (loan_status)
+### 4. Database Schema (`init.sql`)
+- PostgreSQL database initialization
+- Table definitions and constraints
+- Index creation for optimized queries
 
-## Data Cleaning Decisions ##
-### Null Value Handling
-- Standardized null value representations:
-  - Empty strings
-  - Various text representations ('nan', 'none', 'null', 'na', 'n/a')
-  - Case-insensitive matching
-  - Whitespace-only strings
+## Data Cleaning
 
-### Numeric Field Processing
-- Round all values to 2 decimal places
-- Remove commas from numeric strings
-- Convert empty numeric fields to NULL
-- Special handling for fields that should be integers:
-  - term
-  - sba_guaranty_percentage
-  - jobs_reported
+The application performs extensive data cleaning:
+- Standardizes null values
+- Rounds numeric fields to 2 decimal places
+- Handles multiple date formats
+- Cleans and standardizes string fields
+- Processes boolean fields consistently
 
-### Date Handling
-- Support multiple date formats:
-  - Primary format: "YYYY-MM-DD HH:MM:SS"
-  - Alternative format: "MM/DD/YYYY"
-  - Invalid dates are converted to NULL
+## Docker Configuration
 
-### String Field Cleaning
-- Strip leading/trailing whitespace
-- Special handling for fields that should remain strings even if numeric:
-  - loan_number
-  - sba_office_code
-  - servicing_lender_location_id
-  - naics_code
-  - originating_lender_location_id
+The application uses two Docker containers:
+1. **API Container**:
+   - Python 3.9
+   - FastAPI
+   - Playwright for web scraping
+   - Chrome browser for automation
 
-### Boolean Field Processing
-- Convert various representations to boolean:
-  - "true", "yes", "1", "y" → True
-  - Other values → False
-  - Empty/NULL values preserved as NULL
+2. **Database Container**:
+   - PostgreSQL 13
+   - Persistent data storage
+   - Automatic initialization
+   - Health checks
 
-### File Encoding
-- Automatic encoding detection using chardet library
-- Fallback to UTF-8 if no high-confidence encoding is detected
-- Handles the first 100KB of the file for encoding detection
+### Environment Variables
 
-## Error Handling
-- Implements comprehensive error logging
-- Batch transaction management with rollback capability
-- Continues processing on row-level errors
-- Limits error reporting to first 5 occurrences per type
-- Tracks and reports total successful insertions and errors
+Default values are provided in `docker-compose.yml`, but can be overridden with a `.env` file:
+```env
+DATABASE_URL=postgresql://postgres:Hobaelmasry9@db:5432/ppp_database
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=Hobaelmasry9
+POSTGRES_DB=ppp_database
+```
 
-## Environment Setup
-Required environment variables:
-- DB_HOST
-- DB_NAME
-- DB_USER
-- DB_PASSWORD
+## Maintenance Commands
 
-## Performance Considerations
-- Implements batch processing (1000 rows)
-- Uses chunked reading for memory efficiency
-- Utilizes PostgreSQL's execute_batch for optimized insertions
-- Strategic database indexes for query optimization
+```bash
+# View logs
+docker-compose logs
 
-## Data Quality Assurance
-- Validates all data through Pydantic models
-- Enforces data types and constraints
-- Maintains data integrity through database constraints
-- Preserves original data when cleaning is ambiguous
+# Stop the application
+docker-compose down
+
+# Reset everything (including database)
+docker-compose down -v
+
+# Rebuild containers
+docker-compose up --build
+```
+
+## Data Persistence
+
+- Database data persists in the `ppp_loans_data` volume
+- Data survives container restarts
+- Use `docker-compose down -v` to reset data
+
+## Troubleshooting
+
+1. **Database Connection Issues**
+   - Check if PostgreSQL container is healthy:
+     ```bash
+     docker-compose logs db
+     ```
+   - The API will automatically wait for database availability
+
+2. **Scraping Issues**
+   - Check Chrome/Playwright logs:
+     ```bash
+     docker-compose logs api
+     ```
+   - Ensure internet connectivity
+
+3. **Performance Issues**
+   - Database is indexed for common queries
+   - Data is loaded in batches
+   - Container resources can be adjusted in docker-compose.yml
+
+## API Endpoints
+
+The API provides several endpoints for querying PPP loan data:
+- GET `/business/{loan_number}`: Retrieve specific loan details
+- GET `/businesses`: List all businesses with pagination
+- Additional endpoints documented in the Swagger UI
+
+## Security Notes
+
+- Database credentials are managed through environment variables
+- API runs on localhost by default
+- No sensitive data is exposed in logs
+- All external dependencies are version-locked
+
+## Development
+
+To modify or extend the application:
+1. Make changes to the relevant Python files
+2. Rebuild containers: `docker-compose up --build`
+3. Check logs for any issues: `docker-compose logs`
+
+The application is designed to be easily extensible for additional features or data processing requirements.

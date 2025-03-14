@@ -44,16 +44,14 @@ class BusinessDetailsResponse(BaseModel):
     business_age_description: Optional[str] = None
     naics_code: Optional[str] = None
     rural_urban_indicator: Optional[str] = None
-    hubzone_indicator: Optional[str] = None
-    lmi_indicator: Optional[str] = None
+    hubzone_indicator: Optional[bool] = None
+    lmi_indicator: Optional[bool] = None
     
 @app.get("/search", response_model=List[BusinessSearchResponse])
 async def search_businesses(
     name: str = Query(..., description="Business name to search for"),
-    state: Optional[str] = Query(None, description="Filter by state (e.g., CA, NY)"),
-    city: Optional[str] = Query(None, description="Filter by city"),
-    min_amount: Optional[float] = Query(None, description="Minimum initial approval amount"),
-    max_amount: Optional[float] = Query(None, description="Maximum initial approval amount")
+    borrower_state: Optional[str] = Query(None, description="Filter by borrower state (e.g., CA, NY)"),
+    borrower_city: Optional[str] = Query(None, description="Filter by borrower city"),
 ):
     try:
         # Get database connection
@@ -76,18 +74,12 @@ async def search_businesses(
         params = [f"%{name}%"]
 
         # Add optional filters per Requirements 
-        if state:
+        if borrower_state:
             query += " AND borrower_state = %s"
-            params.append(state.upper())
-        if city:
+            params.append(borrower_state.upper())
+        if borrower_city:
             query += " AND borrower_city ILIKE %s"
-            params.append(f"%{city}%")
-        if min_amount is not None:
-            query += " AND initial_approval_amount >= %s"
-            params.append(min_amount)
-        if max_amount is not None:
-            query += " AND initial_approval_amount <= %s"
-            params.append(max_amount)
+            params.append(f"%{borrower_city}%")
 
         # Add limit and order
         query += " ORDER BY initial_approval_amount DESC LIMIT 100"
@@ -179,6 +171,40 @@ async def get_business_details(loan_number: str):
             cur.close()
         if 'conn' in locals():
             conn.close()
+
+#Extra Endpoint: Retrieve the top 10 businesses that received the highest loan amounts
+@app.get("/top-borrowers", response_model=List[BusinessSearchResponse])
+async def get_top_borrowers():
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        query = """
+            SELECT 
+                loan_number, borrower_name, borrower_address,
+                borrower_city, borrower_state, initial_approval_amount,
+                forgiveness_amount
+            FROM ppp_loans
+            ORDER BY initial_approval_amount DESC
+            LIMIT 10
+        """
+        
+        cur.execute(query)
+        results = cur.fetchall()
+        
+        businesses = [BusinessSearchResponse(**dict(zip([
+            'loan_number', 'borrower_name', 'borrower_address',
+            'borrower_city', 'borrower_state', 'initial_approval_amount',
+            'forgiveness_amount'
+        ], row))) for row in results]
+        
+        return businesses
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cur.close()
+        conn.close()
 
 # Health check endpoint
 @app.get("/health")

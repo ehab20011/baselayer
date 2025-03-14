@@ -1,9 +1,14 @@
+import re
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
 import pandas as pd
 
-#Pydantic Model for the PPP Data
+def camel_to_snake(name: str) -> str:
+    """Convert CamelCase (or PascalCase) to snake_case."""
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
 class PPPDataRow(BaseModel):
     LoanNumber: str = Field(..., alias="loan_number")
     DateApproved: Optional[datetime] = Field(None, alias="date_approved")
@@ -29,8 +34,8 @@ class PPPDataRow(BaseModel):
     ServicingLenderState: Optional[str] = Field(None, alias="servicing_lender_state")
     ServicingLenderZip: Optional[str] = Field(None, alias="servicing_lender_zip")
     RuralUrbanIndicator: Optional[str] = Field(None, alias="rural_urban_indicator")
-    HubzoneIndicator: Optional[str] = Field(None, alias="hubzone_indicator")
-    LMIIndicator: Optional[str] = Field(None, alias="lmi_indicator")
+    HubzoneIndicator: Optional[bool] = Field(None, alias="hubzone_indicator")
+    LMIIndicator: Optional[bool] = Field(None, alias="lmi_indicator")
     BusinessAgeDescription: Optional[str] = Field(None, alias="business_age_description")
     ProjectCity: Optional[str] = Field(None, alias="project_city")
     ProjectCountyName: Optional[str] = Field(None, alias="project_county_name")
@@ -64,97 +69,74 @@ class PPPDataRow(BaseModel):
 
     @model_validator(mode='before')
     @classmethod
-    def clean_data(cls, data):
+    def transform_keys(cls, data):
+        """
+        Convert raw CSV keys (e.g. 'LoanNumber') to snake_case (e.g. 'loan_number').
+        This ensures our validators work on the expected keys.
+        """
         if not isinstance(data, dict):
             return data
-            
-        # Convert empty strings and various null representations to None
-        null_values = {'', 'nan', 'none', 'null', 'na', 'n/a'}
-        
-        # Fields that should be strings even if they come as numbers
-        string_fields = ['loan_number', 'sba_office_code', 'servicing_lender_location_id', 
-                        'naics_code', 'originating_lender_location_id']
-        
+        new_data = {}
         for key, value in data.items():
-            # Handle null values
-            if isinstance(value, str):
-                value_lower = value.lower().strip()
-                if value_lower in null_values:
-                    data[key] = None
-                    continue
-            
-            # Convert float 'nan' to None
-            if pd.isna(value):
-                data[key] = None
-                continue
-                
-            # Convert numeric fields that should be strings
-            if key in string_fields and value is not None:
-                if isinstance(value, (int, float)):
-                    # Remove .0 from float numbers when converting to string
-                    data[key] = str(int(value) if float(value).is_integer() else value)
-                else:
-                    data[key] = str(value)
-                    
-        return data
-
-    @field_validator("LoanNumber")
-    @classmethod
-    def loan_Number_must_not_be_empty(cls, value):
-        if not value or str(value).strip() == "":
-            raise ValueError("LoanNumber field cannot be empty")
-        return str(value)
+            new_data[camel_to_snake(key)] = value
+        return new_data
 
     @model_validator(mode='before')
     @classmethod
-    def parse_dates(cls, data):
+    def clean_data(cls, data):
+        """
+        Convert common null representations to None.
+        For fields that must be strings, force a string conversion.
+        """
         if not isinstance(data, dict):
             return data
-            
-        date_fields = ["date_approved", "loan_status_date", "forgiveness_date"]
-        for field in date_fields:
-            if field in data and data[field] is not None:
-                try:
-                    # First try the original date format
-                    data[field] = datetime.strptime(str(data[field]), "%Y-%m-%d %H:%M:%S")
-                except ValueError:
-                    try:
-                        # Then try the alternative date format
-                        data[field] = datetime.strptime(str(data[field]), "%m/%d/%Y")
-                    except ValueError:
-                        data[field] = None  # Set to None if both date formats fail
+        null_values = {'', 'nan', 'none', 'null', 'na', 'n/a'}
+        # Fields that must be strings
+        string_fields = {
+            "loan_number", "sba_office_code", "servicing_lender_location_id",
+            "naics_code", "originating_lender_location_id"
+        }
+        for key, value in data.items():
+            if isinstance(value, str):
+                val = value.strip()
+                if val.lower() in null_values:
+                    data[key] = None
+                    continue
+            if pd.isna(value):
+                data[key] = None
+                continue
+            if key in string_fields and value is not None:
+                data[key] = str(value)
         return data
 
-    @field_validator("Term", "SBAGuarantyPercentage", "JobsReported")
+    # Force conversion for string fields at the field level
+    @field_validator("LoanNumber", "SBAOfficeCode", "ServicingLenderLocationID", "NAICSCode", "OriginatingLenderLocationID", mode="before")
     @classmethod
-    def convert_to_int(cls, value):
+    def convert_to_string(cls, value):
         if value is None or (isinstance(value, str) and value.strip() == ""):
             return None
-        try:
-            # First convert to float to handle decimal strings, then to int
-            return int(float(str(value).replace(',', '')))
-        except (ValueError, TypeError):
-            return None
+        return str(value)
 
-    @field_validator("InitialApprovalAmount", "CurrentApprovalAmount", "UndisbursedAmount", 
-               "UTILITIES_PROCEED", "PAYROLL_PROCEED", "MORTGAGE_INTEREST_PROCEED", 
-               "RENT_PROCEED", "REFINANCE_EIDL_PROCEED", "HEALTH_CARE_PROCEED", 
-               "DEBT_INTEREST_PROCEED", "ForgivenessAmount")
+    # Date field validators: try MM/DD/YYYY then fallback to full timestamp
+    @field_validator("DateApproved", "LoanStatusDate", "ForgivenessDate", mode="before")
     @classmethod
-    def convert_to_float(cls, value):
+    def parse_date(cls, value):
         if value is None or (isinstance(value, str) and value.strip() == ""):
             return None
-        try:
-            # Remove commas and convert to float
-            return round(float(str(value).replace(',', '')), 2)
-        except (ValueError, TypeError):
-            return None
-
-    @field_validator("NonProfit")
-    @classmethod
-    def convert_to_bool(cls, value):
-        if value is None or (isinstance(value, str) and value.strip() == ""):
-            return None
-        if isinstance(value, bool):
+        # If already a datetime, return as is
+        if isinstance(value, datetime):
             return value
-        return str(value).lower() in ["true", "yes", "1", "y"]
+        for fmt in ("%m/%d/%Y", "%Y-%m-%d %H:%M:%S"):
+            try:
+                return datetime.strptime(str(value).strip(), fmt)
+            except ValueError:
+                continue
+        # If no format matches we return None
+        return None
+
+    @field_validator("LoanNumber", mode="before")
+    @classmethod
+    def loan_number_must_not_be_empty(cls, value):
+        if value is None or str(value).strip() == "":
+            raise ValueError("LoanNumber field cannot be empty")
+        return str(value)

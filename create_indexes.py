@@ -40,9 +40,9 @@ def create_indexes():
                     print(f"Creating index: {index_sql}")
                     cur.execute(index_sql)
                     conn.commit()
-                    print("✅ Index created successfully!")
+                    print("Index created successfully!")
                 except Exception as e:
-                    print(f"❌ Error creating index: {e}")
+                    print(f"Error creating index: {e}")
                     conn.rollback()
 
 if __name__ == "__main__":

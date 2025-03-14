@@ -1,5 +1,6 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
+from data_clean import clean_ppp_data
 import os
 
 #CONSTS
@@ -8,8 +9,9 @@ DOWNLOAD_DIR = str(Path.home()/"Downloads")
 CUSTOM_FILE_NAME = "PPP_loan_dataset.csv"
 
 
-def main():
-    #start the playwright context
+def scrape_ppp_data():
+    #Step 1:
+    #Start the playwright context
     with sync_playwright() as p:
         #Launch a chromium browser (set headless=True so it can run in the background)
         browser = p.chromium.launch(headless=False)
@@ -67,8 +69,8 @@ def main():
             browser.close()
             return
         
-    
         browser.close()
+
         
 if __name__ == "__main__":
-    main()
+    scrape_ppp_data()

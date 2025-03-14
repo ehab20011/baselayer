@@ -3,7 +3,14 @@ from models import PPPDataRow
 from typing import List
 import csv
 
-#Function to clean the PPP dataset CSV against the Pydantic model
+# Define numeric fields that need special handling
+numeric_fields = [
+    'sba_guaranty_percentage', 'initial_approval_amount', 'current_approval_amount',
+    'undisbursed_amount', 'jobs_reported', 'utilities_proceed', 'payroll_proceed',
+    'mortgage_interest_proceed', 'rent_proceed', 'refinance_eidl_proceed',
+    'health_care_proceed', 'debt_interest_proceed', 'forgiveness_amount'
+]
+
 def clean_ppp_data(csv_path: str, output_path: str, rows: int = 5000) -> None:
     """
     Reads and cleans the PPP dataset CSV, writing valid rows directly to output CSV.
@@ -26,22 +33,28 @@ def clean_ppp_data(csv_path: str, output_path: str, rows: int = 5000) -> None:
     if df is None:
         raise ValueError("Could not read the CSV file with any of the attempted encodings")
 
-    # Convert all the columns to string type first
-    df = df.astype(str)
-    
-    # Handle all kinds of null values and the empty string
-    df = df.replace({
-        'nan': None,
-        'None': None,
-        'NULL': None,
-        '': None,
-        'NaN': None,
-        'null': None,
-        'NULL': None
-    })
+    # Clean column names to match model field names
+    df.columns = [col.strip() for col in df.columns]
 
-    # Trim spaces from string values
-    df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
+    # Handle all kinds of null values and the empty string
+    null_values = ['nan', 'none', 'null', '', 'na', 'n/a', 'NaN', 'None', 'NULL', 'NA', 'N/A']
+    df = df.replace(null_values, None)
+    
+    # Trim spaces from string values and convert empty strings to None
+    df = df.map(lambda x: None if pd.isna(x) or (isinstance(x, str) and x.strip() in null_values) 
+                else x.strip() if isinstance(x, str) 
+                else x)
+
+    # Handle numeric fields - convert to float where possible
+    for field in numeric_fields:
+        if field in df.columns:
+            # Convert to numeric, coerce errors to NaN
+            df[field] = pd.to_numeric(df[field], errors='coerce')
+            # Replace NaN with None for proper SQL NULL handling
+            df[field] = df[field].where(pd.notnull(df[field]), None)
+            # Round to 2 decimal places for currency fields
+            if field not in ['sba_guaranty_percentage', 'jobs_reported']:
+                df[field] = df[field].apply(lambda x: round(float(x), 2) if x is not None else None)
 
     # Initialize the counters
     valid_count = 0
@@ -50,23 +63,24 @@ def clean_ppp_data(csv_path: str, output_path: str, rows: int = 5000) -> None:
 
     # Open output CSV file for writing
     with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
-        # Get the fieldnames from the first valid row
-        fieldnames = None
+        # Get the fieldnames from the model
+        fieldnames = list(PPPDataRow.model_fields.keys())
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
         
         for idx, row in df.iterrows():
-            row_dict = row.to_dict()
             try:
+                # Convert row to dict and handle NaN values
+                row_dict = {k: None if pd.isna(v) else v for k, v in row.to_dict().items()}
+                
+                # Clean the data through the Pydantic model
                 validated_row = PPPDataRow(**row_dict)
                 validated_dict = validated_row.model_dump()
-                
-                # Set fieldnames from first valid row
-                if fieldnames is None:
-                    fieldnames = list(validated_dict.keys())
-                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                    writer.writeheader()
-                
                 writer.writerow(validated_dict)
                 valid_count += 1
+                
+                if valid_count % 1000 == 0:
+                    print(f"Processed {valid_count} valid rows...")
                 
             except Exception as e:
                 if first_error is None:
@@ -79,8 +93,8 @@ def clean_ppp_data(csv_path: str, output_path: str, rows: int = 5000) -> None:
                 invalid_count += 1
 
     # Print the result
-    print(f"Successfully cleaned and wrote {valid_count} rows to {output_path}")
-    print(f"Skipped {invalid_count} rows due to validation errors")
+    print(f"\n✅ Successfully cleaned and wrote {valid_count} rows to {output_path}")
+    print(f"❌ Skipped {invalid_count} rows due to validation errors")
 
 if __name__ == "__main__":
     csv_file_path = "C:/Users/Ehab Abdalla/Desktop/BaseLayer/PPP_loan_dataset.csv"

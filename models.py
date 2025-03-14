@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional
 from datetime import datetime
+import pandas as pd
 
 #Pydantic Model for the PPP Data
 class PPPDataRow(BaseModel):
@@ -58,14 +59,48 @@ class PPPDataRow(BaseModel):
     forgiveness_amount: Optional[float] = Field(None, alias="ForgivenessAmount")
     forgiveness_date: Optional[datetime] = Field(None, alias="ForgivenessDate")
 
-    #Overriding the validators
-    #The Loan Number field must not be empty for this model
+    @model_validator(mode='before')
+    @classmethod
+    def clean_data(cls, data):
+        if not isinstance(data, dict):
+            return data
+            
+        # Convert empty strings and various null representations to None
+        null_values = {'', 'nan', 'none', 'null', 'na', 'n/a'}
+        
+        # Fields that should be strings even if they come as numbers
+        string_fields = ['LoanNumber', 'SBAOfficeCode', 'ServicingLenderLocationID', 
+                        'NAICSCode', 'OriginatingLenderLocationID']
+        
+        for key, value in data.items():
+            # Handle null values
+            if isinstance(value, str):
+                value_lower = value.lower().strip()
+                if value_lower in null_values:
+                    data[key] = None
+                    continue
+            
+            # Convert float 'nan' to None
+            if pd.isna(value):
+                data[key] = None
+                continue
+                
+            # Convert numeric fields that should be strings
+            if key in string_fields and value is not None:
+                if isinstance(value, (int, float)):
+                    # Remove .0 from float numbers when converting to string
+                    data[key] = str(int(value) if float(value).is_integer() else value)
+                else:
+                    data[key] = str(value)
+                    
+        return data
+
     @field_validator("loan_number")
     @classmethod
     def loan_Number_must_not_be_empty(cls, value):
-        if not value or value.strip() == "":
+        if not value or str(value).strip() == "":
             raise ValueError("LoanNumber field cannot be empty")
-        return value
+        return str(value)
 
     @model_validator(mode='before')
     @classmethod
@@ -77,40 +112,45 @@ class PPPDataRow(BaseModel):
         for field in date_fields:
             if field in data and data[field] is not None:
                 try:
-                    data[field] = datetime.strptime(str(data[field]), "%m/%d/%Y")
+                    # First try the original format
+                    data[field] = datetime.strptime(str(data[field]), "%Y-%m-%d %H:%M:%S")
                 except ValueError:
-                    pass  # Let Pydantic handle the error if date is invalid
+                    try:
+                        # Then try the alternative format
+                        data[field] = datetime.strptime(str(data[field]), "%m/%d/%Y")
+                    except ValueError:
+                        data[field] = None  # Set to None if both formats fail
         return data
 
     @field_validator("term", "sba_guaranty_percentage", "jobs_reported")
     @classmethod
     def convert_to_int(cls, value):
-        if value is None or value == "":
+        if value is None or (isinstance(value, str) and value.strip() == ""):
             return None
         try:
-            return int(float(value))
+            # First convert to float to handle decimal strings, then to int
+            return int(float(str(value).replace(',', '')))
         except (ValueError, TypeError):
-            raise ValueError(f"Expected an integer, got {value}")
+            return None
 
-    #Convert the following fields to floats for the DB
     @field_validator("initial_approval_amount", "current_approval_amount", "undisbursed_amount", 
                "utilities_proceed", "payroll_proceed", "mortgage_interest_proceed", 
                "rent_proceed", "refinance_eidl_proceed", "health_care_proceed", 
                "debt_interest_proceed", "forgiveness_amount")
     @classmethod
     def convert_to_float(cls, value):
-        if value is None or value == "":
+        if value is None or (isinstance(value, str) and value.strip() == ""):
             return None
         try:
-            return float(value)
+            # Remove commas and convert to float
+            return round(float(str(value).replace(',', '')), 2)
         except (ValueError, TypeError):
-            raise ValueError(f"Expected a float, got {value}")
+            return None
 
-    #Convert the NON-PROFIT field to boolean for the DB
     @field_validator("non_profit")
     @classmethod
     def convert_to_bool(cls, value):
-        if value is None or value == "":
+        if value is None or (isinstance(value, str) and value.strip() == ""):
             return None
         if isinstance(value, bool):
             return value

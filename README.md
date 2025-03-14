@@ -20,7 +20,7 @@ A FastAPI-based application that scrapes, processes, and serves PPP (Paycheck Pr
 
 1. Clone this repository:
 ```bash
-git clone <your-repository-url>
+git clone <https://github.com/ehab20011/baselayer.git>
 cd BaseLayer
 ```
 
@@ -93,9 +93,9 @@ The application uses two Docker containers:
 
 Default values are provided in `docker-compose.yml`, but can be overridden with a `.env` file:
 ```env
-DATABASE_URL=postgresql://postgres:Hobaelmasry9@db:5432/ppp_database
+DATABASE_URL=postgresql://postgres:Baselayerproject123@db:5432/ppp_database
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=Hobaelmasry9
+POSTGRES_PASSWORD=Baselayerproject123
 POSTGRES_DB=ppp_database
 ```
 

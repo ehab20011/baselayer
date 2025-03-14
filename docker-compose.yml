@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:Baselayerproject123@db:5432/ppp_database
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=Baselayerproject123
+      - POSTGRES_DB=ppp_database
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+      - /app/venv
+      - /app/__pycache__
+    networks:
+      - ppp-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:13
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=Baselayerproject123
+      - POSTGRES_DB=ppp_database
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ppp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ppp_database"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    name: ppp_loans_data
+
+networks:
+  ppp-network:
+    driver: bridge 

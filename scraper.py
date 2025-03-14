@@ -13,7 +13,7 @@ def scrape_ppp_data():
     #Start the playwright context
     with sync_playwright() as p:
         #Launch a chromium browser (set headless=True so it can run in the background)
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page()
 
         #Go to the organization index page
@@ -69,7 +69,7 @@ def scrape_ppp_data():
             return
         
         browser.close()
-
+        return download_path
         
 if __name__ == "__main__":
     scrape_ppp_data()

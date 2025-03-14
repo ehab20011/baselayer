@@ -1,6 +1,5 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
-from data_clean import clean_ppp_data
 import os
 
 #CONSTS

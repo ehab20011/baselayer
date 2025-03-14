@@ -115,14 +115,14 @@ class PPPDataRow(BaseModel):
         for field in date_fields:
             if field in data and data[field] is not None:
                 try:
-                    # First try the original format
+                    # First try the original date format
                     data[field] = datetime.strptime(str(data[field]), "%Y-%m-%d %H:%M:%S")
                 except ValueError:
                     try:
-                        # Then try the alternative format
+                        # Then try the alternative date format
                         data[field] = datetime.strptime(str(data[field]), "%m/%d/%Y")
                     except ValueError:
-                        data[field] = None  # Set to None if both formats fail
+                        data[field] = None  # Set to None if both date formats fail
         return data
 
     @field_validator("Term", "SBAGuarantyPercentage", "JobsReported")

@@ -1,27 +1,27 @@
 # PPP Loan Data Processing Project - Phase 1
 
-This project focuses on extracting, processing, and storing Paycheck Protection Program (PPP) loan data from the Small Business Administration (SBA) website. The implementation includes automated data scraping, robust data cleaning, and efficient PostgreSQL database storage.
+This project focuses on extracting, processing, and storing Paycheck Protection Program (PPP) loan data from the Small Business Administration (SBA) website. The implementation includes automated data scraping, data cleaning, and PostgreSQL database storage.
 
 ## Project Components
 
 ### 1. Data Scraping (`scraper.py`)
-- Utilizes Playwright for automated web scraping from the SBA website
-- Navigates through multiple pages to locate and download the PPP FOIA dataset
+- Uses Playwright for automated web scraping from the SBA website
+- Navigates through multiple pages to locate and download the PPP FOIA dataset (.csv file)
 - Downloads data to a specified directory with custom naming
 
 ### 2. Data Model (`models.py`)
-- Implements a Pydantic model (`PPPDataRow`) for data validation and type checking
-- Handles 50+ fields including loan details, borrower information, and financial data
-- Includes comprehensive field validation and type conversion
+- Implements a Pydantic model called (`PPPDataRow`) for data validation and type checking
+- Handles all the fields from the csv including loan details, borrower information, and financial data
+- Coded comprehensive field validation and type conversion
 
 ### 3. Data Processing and Storage (`send_to_postgres.py`)
-- Manages PostgreSQL database connections using environment variables
-- Implements batch processing for efficient data insertion
-- Includes robust error handling and logging
+- Manages the PostgreSQL database connections using environment variables (.env file)
+- Implements batch processing for efficient data insertion into the postgresql database
+- Included good error handling and logging for debugging if issues occur
 - Processes data in chunks to manage memory efficiently
 
 ### 4. Database Optimization (`create_indexes.py`)
-- Creates strategic indexes for optimizing query performance
+- Creates indexes for optimizing query performance for the fastAPI
 - Includes indexes for:
   - Primary lookup (loan_number)
   - Common search fields (borrower_name, borrower_state)
@@ -29,17 +29,16 @@ This project focuses on extracting, processing, and storing Paycheck Protection 
   - Location-based queries (composite index on state, city, zip)
   - Status tracking (loan_status)
 
-## Data Cleaning Decisions
-
+## Data Cleaning Decisions ##
 ### Null Value Handling
-- Standardized null value representations including:
+- Standardized null value representations:
   - Empty strings
   - Various text representations ('nan', 'none', 'null', 'na', 'n/a')
   - Case-insensitive matching
   - Whitespace-only strings
 
 ### Numeric Field Processing
-- Round all monetary values to 2 decimal places
+- Round all values to 2 decimal places
 - Remove commas from numeric strings
 - Convert empty numeric fields to NULL
 - Special handling for fields that should be integers:
@@ -69,7 +68,7 @@ This project focuses on extracting, processing, and storing Paycheck Protection 
   - Empty/NULL values preserved as NULL
 
 ### File Encoding
-- Automatic encoding detection using chardet
+- Automatic encoding detection using chardet library
 - Fallback to UTF-8 if no high-confidence encoding is detected
 - Handles the first 100KB of the file for encoding detection
 
@@ -88,7 +87,7 @@ Required environment variables:
 - DB_PASSWORD
 
 ## Performance Considerations
-- Implements batch processing (default batch size: 1000 rows)
+- Implements batch processing (1000 rows)
 - Uses chunked reading for memory efficiency
 - Utilizes PostgreSQL's execute_batch for optimized insertions
 - Strategic database indexes for query optimization
@@ -98,9 +97,3 @@ Required environment variables:
 - Enforces data types and constraints
 - Maintains data integrity through database constraints
 - Preserves original data when cleaning is ambiguous
-
-## Next Steps
-- Implement data analysis queries
-- Create visualization layer
-- Add monitoring for data quality
-- Implement regular data refresh mechanism 

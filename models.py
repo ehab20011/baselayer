@@ -5,59 +5,62 @@ import pandas as pd
 
 #Pydantic Model for the PPP Data
 class PPPDataRow(BaseModel):
-    loan_number: str = Field(..., alias="LoanNumber")
-    date_approved: Optional[datetime] = Field(None, alias="DateApproved")
-    sba_office_code: Optional[str] = Field(None, alias="SBAOfficeCode")
-    processing_method: Optional[str] = Field(None, alias="ProcessingMethod")
-    borrower_name: Optional[str] = Field(None, alias="BorrowerName")
-    borrower_address: Optional[str] = Field(None, alias="BorrowerAddress")
-    borrower_city: Optional[str] = Field(None, alias="BorrowerCity")
-    borrower_state: Optional[str] = Field(None, alias="BorrowerState")
-    borrower_zip: Optional[str] = Field(None, alias="BorrowerZip")
-    loan_status_date: Optional[datetime] = Field(None, alias="LoanStatusDate")
-    loan_status: Optional[str] = Field(None, alias="LoanStatus")
-    term: Optional[int] = Field(None, alias="Term")
-    sba_guaranty_percentage: Optional[int] = Field(None, alias="SBAGuarantyPercentage")
-    initial_approval_amount: Optional[float] = Field(None, alias="InitialApprovalAmount")
-    current_approval_amount: Optional[float] = Field(None, alias="CurrentApprovalAmount")
-    undisbursed_amount: Optional[float] = Field(None, alias="UndisbursedAmount")
-    franchise_name: Optional[str] = Field(None, alias="FranchiseName")
-    servicing_lender_location_id: Optional[str] = Field(None, alias="ServicingLenderLocationID")
-    servicing_lender_name: Optional[str] = Field(None, alias="ServicingLenderName")
-    servicing_lender_address: Optional[str] = Field(None, alias="ServicingLenderAddress")
-    servicing_lender_city: Optional[str] = Field(None, alias="ServicingLenderCity")
-    servicing_lender_state: Optional[str] = Field(None, alias="ServicingLenderState")
-    servicing_lender_zip: Optional[str] = Field(None, alias="ServicingLenderZip")
-    rural_urban_indicator: Optional[str] = Field(None, alias="RuralUrbanIndicator")
-    hubzone_indicator: Optional[str] = Field(None, alias="HubzoneIndicator")
-    lmi_indicator: Optional[str] = Field(None, alias="LMIIndicator")
-    business_age_description: Optional[str] = Field(None, alias="BusinessAgeDescription")
-    project_city: Optional[str] = Field(None, alias="ProjectCity")
-    project_county_name: Optional[str] = Field(None, alias="ProjectCountyName")
-    project_state: Optional[str] = Field(None, alias="ProjectState")
-    project_zip: Optional[str] = Field(None, alias="ProjectZip")
-    cd: Optional[str] = Field(None, alias="CD")
-    jobs_reported: Optional[int] = Field(None, alias="JobsReported")
-    naics_code: Optional[str] = Field(None, alias="NAICSCode")
-    race: Optional[str] = Field(None, alias="Race")
-    ethnicity: Optional[str] = Field(None, alias="Ethnicity")
-    utilities_proceed: Optional[float] = Field(None, alias="UTILITIES_PROCEED")
-    payroll_proceed: Optional[float] = Field(None, alias="PAYROLL_PROCEED")
-    mortgage_interest_proceed: Optional[float] = Field(None, alias="MORTGAGE_INTEREST_PROCEED")
-    rent_proceed: Optional[float] = Field(None, alias="RENT_PROCEED")
-    refinance_eidl_proceed: Optional[float] = Field(None, alias="REFINANCE_EIDL_PROCEED")
-    health_care_proceed: Optional[float] = Field(None, alias="HEALTH_CARE_PROCEED")
-    debt_interest_proceed: Optional[float] = Field(None, alias="DEBT_INTEREST_PROCEED")
-    business_type: Optional[str] = Field(None, alias="BusinessType")
-    originating_lender_location_id: Optional[str] = Field(None, alias="OriginatingLenderLocationID")
-    originating_lender: Optional[str] = Field(None, alias="OriginatingLender")
-    originating_lender_city: Optional[str] = Field(None, alias="OriginatingLenderCity")
-    originating_lender_state: Optional[str] = Field(None, alias="OriginatingLenderState")
-    gender: Optional[str] = Field(None, alias="Gender")
-    veteran: Optional[str] = Field(None, alias="Veteran")
-    non_profit: Optional[bool] = Field(None, alias="NonProfit")
-    forgiveness_amount: Optional[float] = Field(None, alias="ForgivenessAmount")
-    forgiveness_date: Optional[datetime] = Field(None, alias="ForgivenessDate")
+    LoanNumber: str = Field(..., alias="loan_number")
+    DateApproved: Optional[datetime] = Field(None, alias="date_approved")
+    SBAOfficeCode: Optional[str] = Field(None, alias="sba_office_code")
+    ProcessingMethod: Optional[str] = Field(None, alias="processing_method")
+    BorrowerName: Optional[str] = Field(None, alias="borrower_name")
+    BorrowerAddress: Optional[str] = Field(None, alias="borrower_address")
+    BorrowerCity: Optional[str] = Field(None, alias="borrower_city")
+    BorrowerState: Optional[str] = Field(None, alias="borrower_state")
+    BorrowerZip: Optional[str] = Field(None, alias="borrower_zip")
+    LoanStatusDate: Optional[datetime] = Field(None, alias="loan_status_date")
+    LoanStatus: Optional[str] = Field(None, alias="loan_status")
+    Term: Optional[int] = Field(None, alias="term")
+    SBAGuarantyPercentage: Optional[int] = Field(None, alias="sba_guaranty_percentage")
+    InitialApprovalAmount: Optional[float] = Field(None, alias="initial_approval_amount")
+    CurrentApprovalAmount: Optional[float] = Field(None, alias="current_approval_amount")
+    UndisbursedAmount: Optional[float] = Field(None, alias="undisbursed_amount")
+    FranchiseName: Optional[str] = Field(None, alias="franchise_name")
+    ServicingLenderLocationID: Optional[str] = Field(None, alias="servicing_lender_location_id")
+    ServicingLenderName: Optional[str] = Field(None, alias="servicing_lender_name")
+    ServicingLenderAddress: Optional[str] = Field(None, alias="servicing_lender_address")
+    ServicingLenderCity: Optional[str] = Field(None, alias="servicing_lender_city")
+    ServicingLenderState: Optional[str] = Field(None, alias="servicing_lender_state")
+    ServicingLenderZip: Optional[str] = Field(None, alias="servicing_lender_zip")
+    RuralUrbanIndicator: Optional[str] = Field(None, alias="rural_urban_indicator")
+    HubzoneIndicator: Optional[str] = Field(None, alias="hubzone_indicator")
+    LMIIndicator: Optional[str] = Field(None, alias="lmi_indicator")
+    BusinessAgeDescription: Optional[str] = Field(None, alias="business_age_description")
+    ProjectCity: Optional[str] = Field(None, alias="project_city")
+    ProjectCountyName: Optional[str] = Field(None, alias="project_county_name")
+    ProjectState: Optional[str] = Field(None, alias="project_state")
+    ProjectZip: Optional[str] = Field(None, alias="project_zip")
+    CD: Optional[str] = Field(None, alias="cd")
+    JobsReported: Optional[int] = Field(None, alias="jobs_reported")
+    NAICSCode: Optional[str] = Field(None, alias="naics_code")
+    Race: Optional[str] = Field(None, alias="race")
+    Ethnicity: Optional[str] = Field(None, alias="ethnicity")
+    UTILITIES_PROCEED: Optional[float] = Field(None, alias="utilities_proceed")
+    PAYROLL_PROCEED: Optional[float] = Field(None, alias="payroll_proceed")
+    MORTGAGE_INTEREST_PROCEED: Optional[float] = Field(None, alias="mortgage_interest_proceed")
+    RENT_PROCEED: Optional[float] = Field(None, alias="rent_proceed")
+    REFINANCE_EIDL_PROCEED: Optional[float] = Field(None, alias="refinance_eidl_proceed")
+    HEALTH_CARE_PROCEED: Optional[float] = Field(None, alias="health_care_proceed")
+    DEBT_INTEREST_PROCEED: Optional[float] = Field(None, alias="debt_interest_proceed")
+    BusinessType: Optional[str] = Field(None, alias="business_type")
+    OriginatingLenderLocationID: Optional[str] = Field(None, alias="originating_lender_location_id")
+    OriginatingLender: Optional[str] = Field(None, alias="originating_lender")
+    OriginatingLenderCity: Optional[str] = Field(None, alias="originating_lender_city")
+    OriginatingLenderState: Optional[str] = Field(None, alias="originating_lender_state")
+    Gender: Optional[str] = Field(None, alias="gender")
+    Veteran: Optional[str] = Field(None, alias="veteran")
+    NonProfit: Optional[bool] = Field(None, alias="non_profit")
+    ForgivenessAmount: Optional[float] = Field(None, alias="forgiveness_amount")
+    ForgivenessDate: Optional[datetime] = Field(None, alias="forgiveness_date")
+
+    class Config:
+        populate_by_name = True
 
     @model_validator(mode='before')
     @classmethod
@@ -69,8 +72,8 @@ class PPPDataRow(BaseModel):
         null_values = {'', 'nan', 'none', 'null', 'na', 'n/a'}
         
         # Fields that should be strings even if they come as numbers
-        string_fields = ['LoanNumber', 'SBAOfficeCode', 'ServicingLenderLocationID', 
-                        'NAICSCode', 'OriginatingLenderLocationID']
+        string_fields = ['loan_number', 'sba_office_code', 'servicing_lender_location_id', 
+                        'naics_code', 'originating_lender_location_id']
         
         for key, value in data.items():
             # Handle null values
@@ -95,7 +98,7 @@ class PPPDataRow(BaseModel):
                     
         return data
 
-    @field_validator("loan_number")
+    @field_validator("LoanNumber")
     @classmethod
     def loan_Number_must_not_be_empty(cls, value):
         if not value or str(value).strip() == "":
@@ -108,7 +111,7 @@ class PPPDataRow(BaseModel):
         if not isinstance(data, dict):
             return data
             
-        date_fields = ["DateApproved", "LoanStatusDate", "ForgivenessDate"]
+        date_fields = ["date_approved", "loan_status_date", "forgiveness_date"]
         for field in date_fields:
             if field in data and data[field] is not None:
                 try:
@@ -122,7 +125,7 @@ class PPPDataRow(BaseModel):
                         data[field] = None  # Set to None if both formats fail
         return data
 
-    @field_validator("term", "sba_guaranty_percentage", "jobs_reported")
+    @field_validator("Term", "SBAGuarantyPercentage", "JobsReported")
     @classmethod
     def convert_to_int(cls, value):
         if value is None or (isinstance(value, str) and value.strip() == ""):
@@ -133,10 +136,10 @@ class PPPDataRow(BaseModel):
         except (ValueError, TypeError):
             return None
 
-    @field_validator("initial_approval_amount", "current_approval_amount", "undisbursed_amount", 
-               "utilities_proceed", "payroll_proceed", "mortgage_interest_proceed", 
-               "rent_proceed", "refinance_eidl_proceed", "health_care_proceed", 
-               "debt_interest_proceed", "forgiveness_amount")
+    @field_validator("InitialApprovalAmount", "CurrentApprovalAmount", "UndisbursedAmount", 
+               "UTILITIES_PROCEED", "PAYROLL_PROCEED", "MORTGAGE_INTEREST_PROCEED", 
+               "RENT_PROCEED", "REFINANCE_EIDL_PROCEED", "HEALTH_CARE_PROCEED", 
+               "DEBT_INTEREST_PROCEED", "ForgivenessAmount")
     @classmethod
     def convert_to_float(cls, value):
         if value is None or (isinstance(value, str) and value.strip() == ""):
@@ -147,7 +150,7 @@ class PPPDataRow(BaseModel):
         except (ValueError, TypeError):
             return None
 
-    @field_validator("non_profit")
+    @field_validator("NonProfit")
     @classmethod
     def convert_to_bool(cls, value):
         if value is None or (isinstance(value, str) and value.strip() == ""):

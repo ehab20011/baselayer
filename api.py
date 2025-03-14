@@ -206,30 +206,6 @@ async def get_top_borrowers():
         cur.close()
         conn.close()
 
-#Returns the number of loans issued in a given state
-@app.get("/loan-count/{state}", response_model=dict)
-async def get_loan_count(state: str):
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
-        query = """
-            SELECT COUNT(*)
-            FROM ppp_loans
-            WHERE borrower_state = %s
-        """
-        
-        cur.execute(query, [state.upper()])
-        count = cur.fetchone()[0]
-        
-        return {"state": state.upper(), "total_loans": count}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        cur.close()
-        conn.close()
-
 # Health check endpoint
 @app.get("/health")
 async def health_check():

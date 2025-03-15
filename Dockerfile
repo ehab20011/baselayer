@@ -13,7 +13,7 @@ RUN apt-get update && \
     apt-get install -y google-chrome-stable && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first to leverage Docker cache
+# Copy requirements first so we can leverage the Docker cache
 COPY requirements.txt .
 
 # Install Python dependencies and Playwright browser
@@ -24,11 +24,11 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 # Copy the rest of the application
 COPY . .
 
-# Make sure the script is executable
+# Make sure the script is executable (mac issues)
 RUN chmod +x init_service.py
 
 # Expose port 8000
 EXPOSE 8000
 
-# Command to run the application
+# Run the application
 CMD ["python", "init_service.py"] 

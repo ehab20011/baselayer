@@ -2,7 +2,8 @@ version: '3.8'
 
 services:
   api:
-    platform: linux/arm64         # Moved platform here
+    #uncomment this if testing on mac
+    # platform: linux/amd64
     build: .
     depends_on:
       db:
@@ -23,8 +24,9 @@ services:
     restart: unless-stopped
 
   db:
-    platform: linux/arm64
-    image: postgres:13-alpine
+    #uncomment this if testing on mac
+    # platform: linux/amd64
+    image: postgres:13
     ports:
       - "5433:5432"
     environment:

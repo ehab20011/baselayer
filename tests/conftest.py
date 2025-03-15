@@ -7,10 +7,11 @@ from typing import Generator
 from api import app
 from asgi_lifespan import LifespanManager
 
+# Configure the testing ENVIRONMENT 
 # Add the parent directory to Python path
 sys.path.append(str(Path(__file__).parent.parent))
 
-# Test database URL
+# Test the postgres database URL
 TEST_POSTGRES_URL = "postgresql://postgres:Baselayerproject123@db:5432/ppp_database"
 
 @pytest.fixture(scope="session")

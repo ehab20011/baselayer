@@ -103,6 +103,17 @@ services:
       "
     restart: unless-stopped
 
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+    networks:
+      - ppp-network
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
     name: ppp_loans_data

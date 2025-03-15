@@ -6,6 +6,7 @@ from send_to_postgres import get_db_connection
 
 client = TestClient(app)
 
+#TESTS
 def get_sample_loan_number():
     """Get a real loan number from the database for testing."""
     conn = get_db_connection()

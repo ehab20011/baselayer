@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from send_to_postgres import get_db_connection
 from pydantic import BaseModel
 from datetime import datetime
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables
 load_dotenv()
@@ -13,6 +14,15 @@ app = FastAPI(
     title="PPP Loans API",
     description="API for searching and retrieving PPP (Paycheck Protection Program) loan data",
     version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Response models

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPP Loans Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Base Layer - PPP Loans Dashboard</h1>
+            <p>Search and analyze Paycheck Protection Program loan data</p>
+        </header>
+        
+        <div class="search-section">
+            <h2>Search Businesses</h2>
+            <div class="search-form">
+                <input type="text" id="businessName" placeholder="Enter business name..." aria-label="Business name">
+                <input type="text" id="state" placeholder="State (e.g., CA)" maxlength="2" aria-label="State">
+                <input type="text" id="city" placeholder="City name" aria-label="City">
+                <button onclick="searchBusinesses()">
+                    <i class="fas fa-search"></i>
+                    Search
+                </button>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <h2>Search Results</h2>
+            <div id="searchResults" class="results-grid">
+                <div class="loading">
+                    <i class="fas fa-circle-notch fa-spin"></i>
+                    Enter a business name to search...
+                </div>
+            </div>
+        </div>
+
+        <div class="top-borrowers-section">
+            <h2>Top 10 Borrowers</h2>
+            <div id="topBorrowers" class="results-grid">
+                <div class="loading">
+                    <i class="fas fa-circle-notch fa-spin"></i>
+                    Loading top borrowers...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

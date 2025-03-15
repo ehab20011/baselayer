@@ -2,8 +2,6 @@ version: '3.8'
 
 services:
   db:
-    #uncomment this if testing on mac
-    # platform: linux/amd64
     image: postgres:13
     ports:
       - "5433:5432"
@@ -72,8 +70,6 @@ services:
       "
 
   api:
-    #uncomment this if testing on mac
-    # platform: linux/amd64
     build: .
     depends_on:
       - db

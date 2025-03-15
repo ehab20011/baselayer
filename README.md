@@ -1,166 +1,231 @@
-# PPP Loan Data API
+# PPP Loan Data Analytics Platform - Base Layer
 
-A FastAPI-based application that scrapes, processes, and serves PPP (Paycheck Protection Program) loan data through a REST API. The application automatically downloads data from the SBA website, processes it, and stores it in a PostgreSQL database.
+A full-stack web application that provides analytics and visualization of PPP (Paycheck Protection Program) loan data. The platform combines automated data collection, backend processing, and an interactive frontend interface to showcase the PPP loan distributions.
 
-## Features
+## 🌟 Features
 
-- 🤖 Automated web scraping of PPP loan data from SBA website
-- 🧹 Comprehensive data cleaning and validation
-- 📊 PostgreSQL database with optimized indexes
-- 🚀 FastAPI REST endpoints
-- 🐳 Fully containerized with Docker
+- 🤖 Automated data collection from SBA website using Playwright
+- 🧹 Advanced data processing and validation pipeline
+- 📊 PostgreSQL database with optimized query performance
+- 🚀 FastAPI-powered REST API
+- 💻 Modern, responsive frontend interface
+- 🐳 Complete Docker containerization
+- ✅ Comprehensive test coverage
+- 📈 Real-time data visualization
 
-## Quick Start
+## 🏗 Architecture
+
+The application follows a modern three-tier architecture:
+
+### Backend Components
+1. **Data Collection (`scraper.py`)**
+   - Automated web scraping using Playwright
+   - Secure authentication handling
+   - Robust error handling and retry mechanisms
+   - Configurable download parameters
+
+2. **Data Processing (`send_to_postgres.py`)**
+   - ETL pipeline for raw PPP data
+   - Data validation and cleaning
+   - Efficient batch processing
+   - Type conversion and standardization
+
+3. **API Layer (`api.py`)**
+   - RESTful endpoints using FastAPI
+   - Async request handling
+   - Comprehensive data filtering
+   - Pagination support
+   - OpenAPI documentation
+
+4. **Database (`init.sql`, `create_indexes.py`)**
+   - PostgreSQL 13 database
+   - Optimized table schemas
+   - Strategic indexing
+   - Data integrity constraints
+
+### Frontend Components (`frontend/`)
+- Modern HTML5/CSS3/JavaScript stack
+- Responsive design
+- Interactive data visualizations
+- Real-time data updates
+- Cross-browser compatibility
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Docker
-- Docker Compose
+- Docker & Docker Compose
+- Git
+- 4GB+ RAM recommended
 
-### Running the Application
+### Installation
 
-1. Clone this repository:
+1. Clone the repository:
 ```bash
-git clone <https://github.com/ehab20011/baselayer.git>
-cd BaseLayer
+git clone https://github.com/ehab20011/baselayer.git
+cd baselayer
 ```
 
 2. Start the application:
 ```bash
 docker-compose up --build
 ```
+If this doesnt work try:
+```bash
+docker-compose down -v
+docker-compose up --build
+```
 
-That's it! The application will:
-- Start PostgreSQL database
-- Download PPP loan data
-- Clean and load the data (limited to 5000 rows)
-- Start the FastAPI server
+The platform will automatically:
+- Initialize the PostgreSQL database
+- Run database migrations
+- Start data collection
+- Launch the API server
+- Serve the frontend application
 
-### Accessing the API
+### Access Points
+- Frontend Interface: http://localhost:3000
+- API Endpoints: http://localhost:8000
+- API Documentation: http://localhost:8000/docs
+- OpenAPI Spec: http://localhost:8000/openapi.json
 
-Once running, you can access:
-- API endpoints: http://localhost:8000
-- Interactive API documentation: http://localhost:8000/docs
-- OpenAPI specification: http://localhost:8000/openapi.json
-
-## Application Components
-
-### 1. Data Scraping (`scraper.py`)
-- Uses Playwright to automatically navigate and download PPP data
-- Handles authentication and file downloads
-- Manages browser automation with proper error handling
-
-### 2. Data Processing (`send_to_postgres.py`)
-- Cleans and validates PPP loan data
-- Processes data in efficient batches
-- Handles data type conversion and standardization
-- Manages database connections and transactions
-
-### 3. API Server (`api.py`)
-- FastAPI-based REST endpoints
-- Serves PPP loan data with various query parameters
-- Optimized database queries with proper indexing
-
-### 4. Database Schema (`init.sql`)
-- PostgreSQL database initialization
-- Table definitions and constraints
-- Index creation for optimized queries
-
-## Data Cleaning
-
-The application performs extensive data cleaning:
-- Standardizes null values
-- Rounds numeric fields to 2 decimal places
-- Handles multiple date formats
-- Cleans and standardizes string fields
-- Processes boolean fields consistently
-
-## Docker Configuration
-
-The application uses two Docker containers:
-1. **API Container**:
-   - Python 3.9
-   - FastAPI
-   - Playwright for web scraping
-   - Chrome browser for automation
-
-2. **Database Container**:
-   - PostgreSQL 13
-   - Persistent data storage
-   - Automatic initialization
-   - Health checks
+## 🔧 Configuration
 
 ### Environment Variables
-
-Default values are provided in `docker-compose.yml`, but can be overridden with a `.env` file:
+Create a `.env` file with these configurations:
 ```env
 DATABASE_URL=postgresql://postgres:Baselayerproject123@db:5432/ppp_database
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=Baselayerproject123
 POSTGRES_DB=ppp_database
+DATA_LIMIT=5000  # Limit rows for development
+DEBUG=False
 ```
 
-## Maintenance Commands
+### Docker Configuration
+- `docker-compose.yml`: Container orchestration
+- `Dockerfile`: API service configuration
+- Volume mapping for persistent data
+
+## 📊 Data Model
+
+### Core Tables
+1. **PPP Loans**
+   - Loan details
+   - Business information
+   - Amount and status
+   - Temporal data
+
+2. **Businesses**
+   - Company information
+   - Industry classification
+   - Location data
+   - Employee counts
+
+### Indexes
+- Optimized for common queries
+- Full-text search capabilities
+- Geospatial indexing
+
+## 🔌 API Endpoints
+
+### Business Operations
+- `GET /business/{loan_number}`: Detailed loan information
+- `GET /businesses`: Paginated business listing
+- `GET /businesses/search`: Full-text search
+- `GET /businesses/stats`: Aggregated statistics
+
+### Analytics
+- `GET /analytics/industry`: Industry-wise distribution
+- `GET /analytics/temporal`: Time-series analysis
+- `GET /analytics/geographic`: Geographic distribution
+
+## 🧪 Testing
+
+The project includes comprehensive testing:
 
 ```bash
-# View logs
-docker-compose logs
+# Run all tests
+python -m pytest
 
-# Stop the application
-docker-compose down
-
-# Reset everything (including database)
-docker-compose down -v
-
-# Rebuild containers
-docker-compose up --build
+# Run specific test categories
+python -m pytest tests/test_api.py
+python -m pytest tests/test_processing.py
 ```
 
-## Data Persistence
+## 🛠 Development
 
-- Database data persists in the `ppp_loans_data` volume
-- Data survives container restarts
-- Use `docker-compose down -v` to reset data
+### Local Setup
+1. Create virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+```
 
-## Troubleshooting
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-1. **Database Connection Issues**
-   - Check if PostgreSQL container is healthy:
-     ```bash
-     docker-compose logs db
-     ```
-   - The API will automatically wait for database availability
+3. Run development server:
+```bash
+uvicorn api:app --reload
+```
 
-2. **Scraping Issues**
-   - Check Chrome/Playwright logs:
-     ```bash
-     docker-compose logs api
-     ```
-   - Ensure internet connectivity
+### Code Structure
+```
+baselayer/
+├── api.py           # FastAPI application
+├── models.py        # Data models
+├── scraper.py       # Data collection
+├── send_to_postgres.py  # Data processing
+├── init_service.py  # Initialization
+├── create_indexes.py    # Database optimization
+├── frontend/        # Web interface
+│   ├── index.html
+│   ├── script.js
+│   └── styles.css
+└── tests/           # Test suite
+```
 
-3. **Performance Issues**
-   - Database is indexed for common queries
-   - Data is loaded in batches
-   - Container resources can be adjusted in docker-compose.yml
+## 🔒 Security
 
-## API Endpoints
+- Environment-based credentials
+- CORS configuration
+- Rate limiting
+- Input validation
+- SQL injection prevention
+- XSS protection
 
-The API provides several endpoints for querying PPP loan data:
-- GET `/business/{loan_number}`: Retrieve specific loan details
-- GET `/businesses`: List all businesses with pagination
-- Additional endpoints documented in the Swagger UI
+## 📈 Performance
 
-## Security Notes
+- Connection pooling
+- Query optimization
+- Batch processing
+- Caching strategies
+- Load balancing ready
 
-- Database credentials are managed through environment variables
-- API runs on localhost by default
-- No sensitive data is exposed in logs
-- All external dependencies are version-locked
+## 🔍 Troubleshooting
 
-## Development
+### Common Issues
+1. **Database Connection**
+   ```bash
+   docker-compose logs db
+   ```
 
-To modify or extend the application:
-1. Make changes to the relevant Python files
-2. Rebuild containers: `docker-compose up --build`
-3. Check logs for any issues: `docker-compose logs`
+2. **Data Collection**
+   ```bash
+   docker-compose logs api
+   ```
 
-The application is designed to be easily extensible for additional features or data processing requirements.
+3. **Performance**
+   - Check resource allocation
+   - Monitor query performance
+   - Review connection pools
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch
+3. Commit changes
+4. Push to branch
+5. Create Pull Request

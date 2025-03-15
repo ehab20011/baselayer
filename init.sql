@@ -1,4 +1,4 @@
--- Create the ppp_loans table
+-- Create the ppp_loans table [For Docker Instance]
 CREATE TABLE IF NOT EXISTS ppp_loans (
     loan_number VARCHAR(255) PRIMARY KEY,
     date_approved TIMESTAMP,

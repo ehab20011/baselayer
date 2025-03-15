@@ -41,7 +41,7 @@ def main():
         print("ERROR: Failed to download PPP data")
         return 1
 
-    # Step 2: Clean and load data (limited to 5000 rows)
+    # Step 2: Clean and load data (limited to however many rows you specify)
     print("Loading data into PostgreSQL...")
     try:
         clean_and_insert_ppp_data(csv_path, row_limit=5000)

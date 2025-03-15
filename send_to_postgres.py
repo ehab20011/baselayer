@@ -169,7 +169,7 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000, row_limit: 
 
         # Iterate over CSV chunks
         for chunk_num, df in enumerate(chunks, 1):
-            chunk_start_time = time.time()
+            
             print(f"INFO: Processing chunk {chunk_num}...")
             df = clean_dataframe(df)
             

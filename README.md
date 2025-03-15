@@ -2,6 +2,9 @@
 
 A full-stack web application that provides analytics and visualization of PPP (Paycheck Protection Program) loan data. The platform combines automated data collection, backend processing, and an interactive frontend interface to showcase the PPP loan distributions.
 
+![PPP](https://github.com/user-attachments/assets/87b2f054-01ac-4e96-bdc1-27dd73e6bc78)
+
+
 ## 🌟 Features
 
 - 🤖 Automated data collection from SBA website using Playwright

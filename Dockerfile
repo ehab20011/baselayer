@@ -5,6 +5,7 @@ WORKDIR /app
 # Install postgresql-client to provide pg_isready
 RUN apt-get update && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
 
+# Copy requirements first so we can leverage the Docker cache
 RUN pip install --upgrade pip
 COPY requirements.txt .
 RUN pip install -r requirements.txt
@@ -15,10 +16,12 @@ RUN playwright install chromium
 # Copy your application code
 COPY . /app
 
-# Ensure the script is executable
+
+# Make sure the script is executable (mac issues)
 RUN chmod +x init_service.py
 
 # Expose port 8000
 EXPOSE 8000
 
-CMD ["python", "init_service.py"]
+# Run the application
+CMD ["python", "init_service.py"] 

@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS ppp_loans (
     forgiveness_date TIMESTAMP
 );
 
--- Create indexes for better query performance
+-- Create indexes for better query performance as per project requirements
 CREATE INDEX IF NOT EXISTS idx_borrower_name ON ppp_loans(borrower_name);
 CREATE INDEX IF NOT EXISTS idx_borrower_state ON ppp_loans(borrower_state);
 CREATE INDEX IF NOT EXISTS idx_initial_approval_amount ON ppp_loans(initial_approval_amount);

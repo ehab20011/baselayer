@@ -87,22 +87,10 @@ The platform will automatically:
 
 ### Access Points
 - Frontend Interface: http://localhost:3000
-- API Endpoints: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 - OpenAPI Spec: http://localhost:8000/openapi.json
 
 ## 🔧 Configuration
-
-### Environment Variables
-Create a `.env` file with these configurations:
-```env
-DATABASE_URL=postgresql://postgres:Baselayerproject123@db:5432/ppp_database
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=Baselayerproject123
-POSTGRES_DB=ppp_database
-DATA_LIMIT=5000
-DEBUG=False
-```
 
 ### Docker Configuration
 - `docker-compose.yml`: Container orchestration

@@ -1,5 +1,5 @@
 import re
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 from typing import Optional
 from datetime import datetime
 import pandas as pd
@@ -10,6 +10,8 @@ def camel_to_snake(name: str) -> str:
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 class PPPDataRow(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     LoanNumber: str = Field(..., alias="loan_number")
     DateApproved: Optional[datetime] = Field(None, alias="date_approved")
     SBAOfficeCode: Optional[str] = Field(None, alias="sba_office_code")
@@ -63,9 +65,6 @@ class PPPDataRow(BaseModel):
     NonProfit: Optional[bool] = Field(None, alias="non_profit")
     ForgivenessAmount: Optional[float] = Field(None, alias="forgiveness_amount")
     ForgivenessDate: Optional[datetime] = Field(None, alias="forgiveness_date")
-
-    class Config:
-        populate_by_name = True
 
     @model_validator(mode='before')
     @classmethod

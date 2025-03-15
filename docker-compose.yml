@@ -1,28 +1,6 @@
 version: '3.8'
 
 services:
-  api:
-    #uncomment this if testing on mac
-    # platform: linux/amd64
-    build: .
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - "8000:8000"
-    environment:
-      POSTGRES_URL: postgresql://postgres:Baselayerproject123@db:5432/ppp_database
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Baselayerproject123
-      POSTGRES_DB: ppp_database
-    volumes:
-      - ./:/app
-      - /app/venv
-      - /app/__pycache__
-    networks:
-      - ppp-network
-    restart: unless-stopped
-
   db:
     #uncomment this if testing on mac
     # platform: linux/amd64
@@ -45,9 +23,91 @@ services:
       retries: 5
     restart: unless-stopped
 
+  init:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_URL: postgresql://postgres:Baselayerproject123@db:5432/ppp_database
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Baselayerproject123
+      POSTGRES_DB: ppp_database
+    volumes:
+      - ./:/app
+      - /app/venv
+      - /app/__pycache__
+      - init_done:/init_done
+    networks:
+      - ppp-network
+    command: sh -c "python init_service.py && touch /init_done/done"
+
+  test:
+    build: .
+    depends_on:
+      - init
+      - db
+    environment:
+      POSTGRES_URL: postgresql://postgres:Baselayerproject123@db:5432/ppp_database
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Baselayerproject123
+      POSTGRES_DB: ppp_database
+      PYTHONPATH: /app
+    volumes:
+      - ./:/app
+      - /app/venv
+      - /app/__pycache__
+      - init_done:/init_done
+      - test_done:/test_done
+    networks:
+      - ppp-network
+    command: >
+      sh -c "
+        while [ ! -f /init_done/done ]; do
+          echo 'Waiting for init service to complete...';
+          sleep 2;
+        done &&
+        python -m pytest tests/ -v &&
+        touch /test_done/done
+      "
+
+  api:
+    #uncomment this if testing on mac
+    # platform: linux/amd64
+    build: .
+    depends_on:
+      - db
+      - init
+      - test
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_URL: postgresql://postgres:Baselayerproject123@db:5432/ppp_database
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Baselayerproject123
+      POSTGRES_DB: ppp_database
+    volumes:
+      - ./:/app
+      - /app/venv
+      - /app/__pycache__
+      - test_done:/test_done
+    networks:
+      - ppp-network
+    command: >
+      sh -c "
+        while [ ! -f /test_done/done ]; do
+          echo 'Waiting for tests to complete...';
+          sleep 2;
+        done &&
+        uvicorn api:app --host 0.0.0.0 --port 8000
+      "
+    restart: unless-stopped
+
 volumes:
   postgres_data:
     name: ppp_loans_data
+  init_done:
+  test_done:
 
 networks:
   ppp-network:

@@ -97,7 +97,7 @@ DATABASE_URL=postgresql://postgres:Baselayerproject123@db:5432/ppp_database
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=Baselayerproject123
 POSTGRES_DB=ppp_database
-DATA_LIMIT=5000  # Limit rows for development
+DATA_LIMIT=5000
 DEBUG=False
 ```
 

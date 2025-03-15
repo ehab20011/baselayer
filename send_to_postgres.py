@@ -25,7 +25,7 @@ def get_db_connection():
             database=os.getenv("POSTGRES_DB"),
             user=os.getenv("POSTGRES_USER"),
             password=os.getenv("POSTGRES_PASSWORD"),
-            host=os.getenv("DB_HOST", "localhost"),
+            host=os.getenv("DB_HOST", "db"),
             port="5432"
         )
         return conn
@@ -145,10 +145,10 @@ def read_csv_safely(file_path, chunk_size=None):
     # If we get here, none of the encodings worked
     raise ValueError(f"Failed to read CSV file with any encoding. Last error: {last_error}")
 
-def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000):
+def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000, row_limit: int = 5000):
     """
     Clean and insert PPP data into PostgreSQL.
-    Processes all rows in batches and reports timing information.
+    Processes rows in batches, stopping after row_limit rows.
     """
     start_time = time.time()
     last_batch_time = start_time
@@ -162,23 +162,32 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000):
             print(f"ERROR: Failed reading CSV: {e}")
             return None, None
 
-        total_rows = 0
+        total_rows = 0      # Total number of rows successfully inserted
+        processed_rows = 0  # Total number of rows processed from the CSV
         error_count = 0
         batch = []
 
+        # Iterate over CSV chunks
         for chunk_num, df in enumerate(chunks, 1):
             chunk_start_time = time.time()
             print(f"INFO: Processing chunk {chunk_num}...")
             df = clean_dataframe(df)
             
+            # Process each row in the chunk
             for _, row in df.iterrows():
+                # If we've reached the row limit, break out of both loops.
+                if processed_rows >= row_limit:
+                    print(f"INFO: Reached row limit of {row_limit}. Stopping further processing.")
+                    break
+
                 try:
                     row_dict = {k: None if pd.isna(v) else v for k, v in row.to_dict().items()}
                     validated_row = PPPDataRow(**row_dict)
                     validated_dict = validated_row.model_dump()
                     formatted_row = {normalize_key(k): format_value(v, k) for k, v in validated_dict.items()}
                     batch.append(formatted_row)
-                    
+                    processed_rows += 1
+                                        
                     if len(batch) >= batch_size:
                         try:
                             execute_batch(
@@ -193,7 +202,7 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000):
                             total_duration = current_time - start_time
                             rows_per_second = len(batch) / batch_duration
                             print(f"INFO: Batch inserted successfully. "
-                                  f"Total rows: {total_rows:,}. "
+                                  f"Total rows inserted: {total_rows:,}. "
                                   f"Batch processing time: {batch_duration:.2f}s. "
                                   f"Rows/second this batch: {rows_per_second:.2f}. "
                                   f"Total elapsed time: {total_duration:.2f}s")
@@ -209,7 +218,11 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000):
                     if error_count <= 5:  # Only show first 5 validation errors
                         print(f"ERROR: Validation failed: {e}\nProblematic data: {row_dict}")
 
-        # Handle any remaining rows in the last batch
+            # Check after finishing a chunk if the row limit was reached.
+            if processed_rows >= row_limit:
+                break
+
+        # Insert any remaining rows in the final batch
         if batch:
             try:
                 execute_batch(
@@ -224,7 +237,7 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000):
                 total_duration = current_time - start_time
                 rows_per_second = len(batch) / batch_duration
                 print(f"INFO: Final batch inserted successfully. "
-                      f"Total rows: {total_rows:,}. "
+                      f"Total rows inserted: {total_rows:,}. "
                       f"Batch processing time: {batch_duration:.2f}s. "
                       f"Rows/second this batch: {rows_per_second:.2f}")
             except Exception as e:
@@ -235,7 +248,7 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000):
     total_duration = time.time() - start_time
     avg_rows_per_second = total_rows / total_duration if total_duration > 0 else 0
     print(f"\nINFO: Processing completed."
-          f"\n  - Total rows processed: {total_rows:,}"
+          f"\n  - Total rows inserted: {total_rows:,}"
           f"\n  - Total errors: {error_count:,}"
           f"\n  - Total time: {total_duration:.2f}s"
           f"\n  - Average rows/second: {avg_rows_per_second:.2f}")

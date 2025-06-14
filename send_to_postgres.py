@@ -1,5 +1,5 @@
 import pandas as pd
-from models import PPPDataRow
+from models import PPPLoanDataSchema
 import psycopg2
 import os
 from dotenv import load_dotenv
@@ -7,6 +7,14 @@ from datetime import datetime
 import chardet
 from psycopg2.extras import execute_batch
 import time
+import logging
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Define numeric fields that need special handling
 NUMERIC_FIELDS = {
@@ -30,7 +38,7 @@ def get_db_connection():
         )
         return conn
     except Exception as e:
-        print(f"ERROR: Database connection failed: {e}")
+        logger.error(f"Database connection failed: {e}")
         raise
 
 def detect_encoding(file_path):
@@ -41,9 +49,9 @@ def detect_encoding(file_path):
         encoding = result['encoding']
         confidence = result['confidence']
     if encoding and confidence > 0.8:
-        print(f"INFO: Detected encoding {encoding} with {confidence:.2f} confidence")
+        logger.info(f"Detected encoding {encoding} with {confidence:.2f} confidence")
         return encoding
-    print("WARNING: No high-confidence encoding detected, defaulting to utf-8")
+    logger.warning("No high-confidence encoding detected, defaulting to utf-8")
     return 'utf-8'
 
 def format_value(value, field_name=None):
@@ -122,7 +130,7 @@ def read_csv_safely(file_path, chunk_size=None):
     last_error = None
     for encoding in encodings:
         try:
-            print(f"INFO: Attempting to read CSV with encoding: {encoding}")
+            logger.info(f"Attempting to read CSV with encoding: {encoding}")
             if chunk_size:
                 return pd.read_csv(
                     file_path,
@@ -139,7 +147,7 @@ def read_csv_safely(file_path, chunk_size=None):
             )
         except Exception as e:
             last_error = e
-            print(f"INFO: Failed with encoding {encoding}: {str(e)}")
+            logger.info(f"Failed with encoding {encoding}: {str(e)}")
             continue
     
     # If we get here, none of the encodings worked
@@ -154,12 +162,12 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000, row_limit: 
     last_batch_time = start_time
 
     with get_db_connection() as conn, conn.cursor() as cur:
-        print("INFO: Attempting to read the CSV file...")
+        logger.info("Attempting to read the CSV file...")
         try:
             chunks = read_csv_safely(csv_path, chunk_size=batch_size)
-            print("INFO: Successfully opened CSV file")
+            logger.info("Successfully opened CSV file")
         except ValueError as e:
-            print(f"ERROR: Failed reading CSV: {e}")
+            logger.error(f"Failed reading CSV: {e}")
             return None, None
 
         total_rows = 0      # Total number of rows successfully inserted
@@ -170,19 +178,19 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000, row_limit: 
         # Iterate over CSV chunks
         for chunk_num, df in enumerate(chunks, 1):
             
-            print(f"INFO: Processing chunk {chunk_num}...")
+            logger.info(f"Processing chunk {chunk_num}...")
             df = clean_dataframe(df)
             
             # Process each row in the chunk
             for _, row in df.iterrows():
                 # If we've reached the row limit, break out of both loops.
                 if processed_rows >= row_limit:
-                    print(f"INFO: Reached row limit of {row_limit}. Stopping further processing.")
+                    logger.info(f"Reached row limit of {row_limit}. Stopping further processing.")
                     break
 
                 try:
                     row_dict = {k: None if pd.isna(v) else v for k, v in row.to_dict().items()}
-                    validated_row = PPPDataRow(**row_dict)
+                    validated_row = PPPLoanDataSchema(**row_dict)
                     validated_dict = validated_row.model_dump()
                     formatted_row = {normalize_key(k): format_value(v, k) for k, v in validated_dict.items()}
                     batch.append(formatted_row)
@@ -201,7 +209,7 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000, row_limit: 
                             batch_duration = current_time - last_batch_time
                             total_duration = current_time - start_time
                             rows_per_second = len(batch) / batch_duration
-                            print(f"INFO: Batch inserted successfully. "
+                            logger.info(f"Batch inserted successfully. "
                                   f"Total rows inserted: {total_rows:,}. "
                                   f"Batch processing time: {batch_duration:.2f}s. "
                                   f"Rows/second this batch: {rows_per_second:.2f}. "
@@ -210,13 +218,13 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000, row_limit: 
                         except Exception as e:
                             conn.rollback()
                             error_count += len(batch)
-                            print(f"ERROR: Failed inserting batch: {e}")
+                            logger.error(f"Failed inserting batch: {e}")
                         finally:
                             batch = []
                 except Exception as e:
                     error_count += 1
                     if error_count <= 5:  # Only show first 5 validation errors
-                        print(f"ERROR: Validation failed: {e}\nProblematic data: {row_dict}")
+                        logger.error(f"Validation failed: {e}\nProblematic data: {row_dict}")
 
             # Check after finishing a chunk if the row limit was reached.
             if processed_rows >= row_limit:
@@ -236,18 +244,18 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000, row_limit: 
                 batch_duration = current_time - last_batch_time
                 total_duration = current_time - start_time
                 rows_per_second = len(batch) / batch_duration
-                print(f"INFO: Final batch inserted successfully. "
+                logger.info(f"Final batch inserted successfully. "
                       f"Total rows inserted: {total_rows:,}. "
                       f"Batch processing time: {batch_duration:.2f}s. "
                       f"Rows/second this batch: {rows_per_second:.2f}")
             except Exception as e:
                 conn.rollback()
                 error_count += len(batch)
-                print(f"ERROR: Failed inserting final batch: {e}")
+                logger.error(f"Failed inserting final batch: {e}")
 
     total_duration = time.time() - start_time
     avg_rows_per_second = total_rows / total_duration if total_duration > 0 else 0
-    print(f"\nINFO: Processing completed."
+    logger.info(f"\nProcessing completed."
           f"\n  - Total rows inserted: {total_rows:,}"
           f"\n  - Total errors: {error_count:,}"
           f"\n  - Total time: {total_duration:.2f}s"
@@ -255,7 +263,6 @@ def clean_and_insert_ppp_data(csv_path: str, batch_size: int = 1000, row_limit: 
     return total_rows, error_count
 
 if __name__ == "__main__":
-    import os
     csv_file_path = os.path.join(os.path.dirname(__file__), "PPP_loan_dataset.csv")
     clean_and_insert_ppp_data(csv_file_path)
-    print("INFO: Data cleaning and insertion completed")
+    logger.info("Data cleaning and insertion completed")

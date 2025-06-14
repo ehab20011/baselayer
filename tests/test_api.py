@@ -1,7 +1,5 @@
-import pytest
 from fastapi.testclient import TestClient
 from api import app
-import psycopg2
 from send_to_postgres import get_db_connection
 
 client = TestClient(app)

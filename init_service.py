@@ -1,7 +1,7 @@
 import subprocess
 import time
 import os
-from scraper import scrape_ppp_data
+from scraper import scrape_ppp_loan_data
 from send_to_postgres import clean_and_insert_ppp_data
 
 #This script will first wait for the postgresSQL database to be ready
@@ -35,7 +35,7 @@ def main():
 
     # Step 1: Download the PPP data
     print("Downloading PPP data...")
-    csv_path = scrape_ppp_data()
+    csv_path = scrape_ppp_loan_data()
     
     if not csv_path or not os.path.exists(csv_path):
         print("ERROR: Failed to download PPP data")

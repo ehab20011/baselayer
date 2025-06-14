@@ -1,6 +1,6 @@
 import re
 from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
-from typing import Optional
+from typing import Optional, Any, Dict
 from datetime import datetime
 import pandas as pd
 
@@ -9,7 +9,7 @@ def camel_to_snake(name: str) -> str:
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
-class PPPDataRow(BaseModel):
+class PPPLoanDataSchema(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     LoanNumber: str = Field(..., alias="loan_number")
@@ -48,13 +48,13 @@ class PPPDataRow(BaseModel):
     NAICSCode: Optional[str] = Field(None, alias="naics_code")
     Race: Optional[str] = Field(None, alias="race")
     Ethnicity: Optional[str] = Field(None, alias="ethnicity")
-    UTILITIES_PROCEED: Optional[float] = Field(None, alias="utilities_proceed")
-    PAYROLL_PROCEED: Optional[float] = Field(None, alias="payroll_proceed")
-    MORTGAGE_INTEREST_PROCEED: Optional[float] = Field(None, alias="mortgage_interest_proceed")
-    RENT_PROCEED: Optional[float] = Field(None, alias="rent_proceed")
-    REFINANCE_EIDL_PROCEED: Optional[float] = Field(None, alias="refinance_eidl_proceed")
-    HEALTH_CARE_PROCEED: Optional[float] = Field(None, alias="health_care_proceed")
-    DEBT_INTEREST_PROCEED: Optional[float] = Field(None, alias="debt_interest_proceed")
+    UtilitiesProceed: Optional[float] = Field(None, alias="utilities_proceed")
+    PayrollProceed: Optional[float] = Field(None, alias="payroll_proceed")
+    MortgageInterestProceed: Optional[float] = Field(None, alias="mortgage_interest_proceed")
+    RentProceed: Optional[float] = Field(None, alias="rent_proceed")
+    RefinanceEidlProceed: Optional[float] = Field(None, alias="refinance_eidl_proceed")
+    HealthCareProceed: Optional[float] = Field(None, alias="health_care_proceed")
+    DebtInterestProceed: Optional[float] = Field(None, alias="debt_interest_proceed")
     BusinessType: Optional[str] = Field(None, alias="business_type")
     OriginatingLenderLocationID: Optional[str] = Field(None, alias="originating_lender_location_id")
     OriginatingLender: Optional[str] = Field(None, alias="originating_lender")
@@ -68,61 +68,42 @@ class PPPDataRow(BaseModel):
 
     @model_validator(mode='before')
     @classmethod
-    def transform_keys(cls, data):
-        """
-        Convert raw CSV keys (e.g. 'LoanNumber') to snake_case (e.g. 'loan_number').
-        This ensures our validators work on the expected keys.
-        """
+    def clean_null_values(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert common null representations to None."""
         if not isinstance(data, dict):
             return data
-        new_data = {}
-        for key, value in data.items():
-            new_data[camel_to_snake(key)] = value
-        return new_data
 
-    @model_validator(mode='before')
-    @classmethod
-    def clean_data(cls, data):
-        """
-        Convert common null representations to None.
-        For fields that must be strings, force a string conversion.
-        """
-        if not isinstance(data, dict):
-            return data
         null_values = {'', 'nan', 'none', 'null', 'na', 'n/a'}
-        # Fields that must be strings
-        string_fields = {
-            "loan_number", "sba_office_code", "servicing_lender_location_id",
-            "naics_code", "originating_lender_location_id"
-        }
+        cleaned_data = {}
+        
         for key, value in data.items():
             if isinstance(value, str):
-                val = value.strip()
-                if val.lower() in null_values:
-                    data[key] = None
+                value = value.strip()
+                if value.lower() in null_values:
+                    cleaned_data[key] = None
                     continue
             if pd.isna(value):
-                data[key] = None
+                cleaned_data[key] = None
                 continue
-            if key in string_fields and value is not None:
-                data[key] = str(value)
-        return data
+            cleaned_data[key] = value
+            
+        return cleaned_data
 
-    # Force conversion for string fields at the field level
-    @field_validator("LoanNumber", "SBAOfficeCode", "ServicingLenderLocationID", "NAICSCode", "OriginatingLenderLocationID", mode="before")
+    @field_validator("LoanNumber", "SBAOfficeCode", "ServicingLenderLocationID", 
+                    "NAICSCode", "OriginatingLenderLocationID", mode="before")
     @classmethod
-    def convert_to_string(cls, value):
+    def convert_to_string(cls, value: Any) -> Optional[str]:
+        """Convert fields that must be strings to proper string format."""
         if value is None or (isinstance(value, str) and value.strip() == ""):
             return None
         return str(value)
 
-    # Date field validators: try MM/DD/YYYY then fallback to full timestamp
     @field_validator("DateApproved", "LoanStatusDate", "ForgivenessDate", mode="before")
     @classmethod
-    def parse_date(cls, value):
+    def parse_date(cls, value: Any) -> Optional[datetime]:
+        """Parse date fields from various formats."""
         if value is None or (isinstance(value, str) and value.strip() == ""):
             return None
-        # If already a datetime, return as is
         if isinstance(value, datetime):
             return value
         for fmt in ("%m/%d/%Y", "%Y-%m-%d %H:%M:%S"):
@@ -130,12 +111,12 @@ class PPPDataRow(BaseModel):
                 return datetime.strptime(str(value).strip(), fmt)
             except ValueError:
                 continue
-        # If no format matches we return None
         return None
 
     @field_validator("LoanNumber", mode="before")
     @classmethod
-    def loan_number_must_not_be_empty(cls, value):
+    def validate_loan_number(cls, value: Any) -> str:
+        """Ensure loan number is not empty and is a string."""
         if value is None or str(value).strip() == "":
             raise ValueError("LoanNumber field cannot be empty")
         return str(value)

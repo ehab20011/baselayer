@@ -2,7 +2,8 @@
 
 A comprehensive full-stack application that automates the collection, processing, and analysis of PPP (Paycheck Protection Program) loan data. Built with FastAPI, PostgreSQL, Apache Beam, and Docker containerization.
 
-![PPP](https://github.com/user-attachments/assets/87b2f054-01ac-4e96-bdc1-27dd73e6bc78)
+![PPP](https://github.com/user-attachments/assets/e496eb8d-9248-4bcf-a6dd-1a2d00707d48)
+
 
 ## 🌟 Features
 

@@ -60,6 +60,23 @@
         </div>
     </div>
 
+    <!-- Chatbot -->
+    <div id="chatbot-container">
+        <div id="chatbot-header">
+            <span>Chatbot</span>
+            <button onclick="toggleChat()" aria-label="Toggle Chatbot">−</button>
+        </div>
+        <div id="chatbot-body">
+            <div class="chatbot-message bot">Hi! How can I help you today?</div>
+            <div class="sample-questions">
+                <div class="sample-question" onclick="handleSampleQuestion('What is PPP Loan Data?')">What is PPP Loan Data?</div>
+                <div class="sample-question" onclick="handleSampleQuestion('How do I search for a business?')">How do I search for a business?</div>
+                <div class="sample-question" onclick="handleSampleQuestion('How do I search for a loan number?')">How do I search for a loan number?</div>
+            </div>
+            <input type="text" placeholder="Type a message..." aria-label="Type a message">
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html> 

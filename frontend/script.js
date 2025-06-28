@@ -44,6 +44,58 @@ function showError(elementId, message) {
     `;
 }
 
+// Function to close and open the chatbot
+function toggleChat() {
+    const body = document.getElementById("chatbot-body");
+    const button = document.querySelector("#chatbot-header button");
+    
+    body.classList.toggle("minimized");
+    button.classList.toggle("minimized");
+    
+    // Update the button text
+    button.textContent = body.classList.contains("minimized") ? "+" : "−";
+}
+
+// Function to add a message to the chat
+function addMessage(message, isUser = false) {
+    const chatBody = document.getElementById("chatbot-body");
+    const messageDiv = document.createElement("div");
+    messageDiv.className = `chatbot-message ${isUser ? 'user' : 'bot'}`;
+    messageDiv.textContent = message;
+    
+    // Insert before the sample questions and input
+    const input = chatBody.querySelector("input");
+    chatBody.insertBefore(messageDiv, input.previousElementSibling);
+    
+    // Scroll to the bottom
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+// Handle sample question click
+function handleSampleQuestion(question) {
+    // Add the user's question
+    addMessage(question, true);
+    
+    // Simulate typing delay before showing response
+    setTimeout(() => {
+        let response;
+        switch(question) {
+            case 'What is PPP Loan Data?':
+                response = "The Paycheck Protection Program (PPP) Loan Data contains information about loans given to small businesses during the COVID-19 pandemic. This database includes details about borrowers, loan amounts, forgiveness status, and other key information about this crucial economic relief program.";
+                break;
+            case 'How do I search for a business?':
+                response = "To search for a business:\n\n1. Enter the business name in the search box at the top\n2. Optionally, add the state (e.g., CA) and city to narrow down results\n3. Click the Search button\n\nYou can also search by loan number if you have it. The results will show you loan amounts and forgiveness status for each business.";
+                break;
+            case 'How do I search for a loan number?':
+                response = "To search for a loan number:\n\n1. Enter the loan number in the search box at the top\n2. Click the Search button\n\nThe results will show you the business name, loan amount, and forgiveness status for the loan.";
+                break;
+            default:
+                response = "I'm not sure about that. Please try asking something else.";
+        }
+        addMessage(response);
+    }, 500);
+}
+
 // Search businesses
 async function searchBusinesses() {
     const name = document.getElementById('businessName').value.trim();

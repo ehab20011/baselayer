@@ -1,5 +1,6 @@
 # Environment variables
 .env
+machine_learning/.env
 config.conf
 
 # Virtual environment

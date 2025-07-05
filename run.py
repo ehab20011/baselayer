@@ -61,7 +61,7 @@ class ProcessPPPLoanDataDoFn(beam.DoFn):
 ################################################################################
 def run(argv: Optional[List[str]] = None) -> None:
     """
-    Main pipeline execution for CALIFORNIA SOS data processing.
+    Main pipeline execution for PPP SOS data processing.
     """
     TemplateOptions = construct_template_options()
     pipeline_options = TemplateOptions(flags=argv)

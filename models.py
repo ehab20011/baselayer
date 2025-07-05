@@ -201,3 +201,13 @@ class PPPLoanDataSchema(ValidatedBaseModel):
     def shard_id(self) -> int:
         """Compute shard ID based on hash of loan number."""
         return abs(hash(self.loan_number))
+
+class QuestionRequest(ValidatedBaseModel):
+    question: str = Field(..., min_length=1, max_length=500, description="The question to ask the database")
+
+class QuestionResponse(ValidatedBaseModel):
+    question: str
+    postgres_sql_query: str
+    result: list
+    response: str
+    success: bool = True

@@ -63,12 +63,77 @@ function addMessage(message, isUser = false) {
     messageDiv.className = `chatbot-message ${isUser ? 'user' : 'bot'}`;
     messageDiv.textContent = message;
     
-    // Insert before the sample questions and input
-    const input = chatBody.querySelector("input");
-    chatBody.insertBefore(messageDiv, input.previousElementSibling);
+    // Insert before the sample questions and input container
+    const inputContainer = chatBody.querySelector(".chatbot-input-container");
+    chatBody.insertBefore(messageDiv, inputContainer);
     
     // Scroll to the bottom
     chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+// Function to remove the last message (used to remove loading message)
+function removeLastMessage() {
+    const chatBody = document.getElementById("chatbot-body");
+    const messages = chatBody.querySelectorAll(".chatbot-message");
+    if (messages.length > 0) {
+        const lastMessage = messages[messages.length - 1];
+        lastMessage.remove();
+    }
+}
+
+// Function to send a message
+async function sendMessage() {
+    const input = document.getElementById('chatbot-input');
+    const sendButton = document.getElementById('chatbot-send-btn');
+    const message = input.value.trim();
+    
+    if (message && !sendButton.disabled) {
+        // Disable send button during API call
+        sendButton.disabled = true;
+        sendButton.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+        
+        // Add user message
+        addMessage(message, true);
+        
+        // Clear input
+        input.value = '';
+        
+        // Show loading message
+        addMessage("🤔 Thinking...", false);
+        
+        try {
+            // Make API call to ask-question endpoint
+            const response = await fetch(`${API_BASE_URL}/ask-question`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    question: message
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Remove loading message and add bot response
+            removeLastMessage(); // Remove the "Thinking..." message
+            addMessage(data.response, false);
+            
+        } catch (error) {
+            console.error('Error calling API:', error);
+            // Remove loading message and show error
+            removeLastMessage(); // Remove the "Thinking..." message
+            addMessage("Sorry, I encountered an error while processing your question. Please try again.", false);
+        } finally {
+            // Re-enable send button
+            sendButton.disabled = false;
+            sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+    }
 }
 
 // Handle sample question click
@@ -196,7 +261,7 @@ document.getElementById('state').addEventListener('input', function(e) {
     }
 });
 
-// Add enter key support for search
+// Add enter key support for search and chatbot
 document.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         const activeElement = document.activeElement;
@@ -204,6 +269,8 @@ document.addEventListener('keypress', function(e) {
             activeElement.id === 'state' || 
             activeElement.id === 'city') {
             searchBusinesses();
+        } else if (activeElement.id === 'chatbot-input') {
+            sendMessage();
         }
     }
 });

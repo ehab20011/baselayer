@@ -77,8 +77,8 @@ def connect_to_database() -> psycopg2.extensions.connection:
             "dbname":   os.getenv("DB_NAME"),
             "user":     os.getenv("DB_USER"),
             "password": os.getenv("DB_PASSWORD"),
-            "host":     "localhost",
-            "port":     "5434",
+            "host":     os.getenv("DB_HOST", "localhost"),
+            "port":     os.getenv("DB_PORT", "5432"),
         }
         conn: psycopg2.extensions.connection = psycopg2.connect(**db_config)
 
@@ -110,6 +110,8 @@ def generate_query(question: str) -> str:
     5. Handle NULL values appropriately
     6. Use PostgreSQL-specific functions and syntax
     7. For aggregations, cast to numeric before rounding: ROUND(AVG(column)::numeric, 2)
+    8. For business name searches, always use ILIKE with wildcards (%) for partial matching
+       Example: WHERE borrower_name ILIKE '%company name%'
 
     PostgreSQL Query:
     """

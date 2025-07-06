@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 @pytest.fixture
-def db_config():
+def db_config() -> dict[str, str]:
     """Database configuration fixture"""
     return {
         "dbname":   os.getenv("DB_NAME"),
@@ -17,12 +17,12 @@ def db_config():
         "port":     os.getenv("DB_PORT", "5432"),
     }
 
-def test_database_connection(db_config):
+def test_database_connection(db_config: dict[str, str]):
     """Test that we can connect to the database"""
     try:
         # Try to connect
-        conn = psycopg2.connect(**db_config)
-        cursor = conn.cursor()
+        conn: psycopg2.extensions.connection = psycopg2.connect(**db_config)
+        cursor: psycopg2.extensions.cursor = conn.cursor()
         cursor.execute("SELECT version();")
         version = cursor.fetchone()
         
@@ -40,11 +40,11 @@ def test_database_connection(db_config):
     except Exception as e:
         pytest.fail(f"Failed to connect to the database: {str(e)}")
 
-def test_database_query(db_config):
+def test_database_query(db_config: dict[str, str]):
     """Test that we can execute a simple query"""
     try:
-        conn = psycopg2.connect(**db_config)
-        cursor = conn.cursor()
+        conn: psycopg2.extensions.connection = psycopg2.connect(**db_config)
+        cursor: psycopg2.extensions.cursor = conn.cursor()
         
         # Test a simple query
         cursor.execute("SELECT 1 as test_value;")
